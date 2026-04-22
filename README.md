@@ -5,7 +5,7 @@
 [![node](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)](https://nodejs.org/)
 
 TypeScript-first Node.js SDK for the Gum API. Use it to create conversation
-threads, append messages, retrieve contextual memory, and write user action
+Sessions, append messages, retrieve contextual memory, and write user action
 events from Node.js applications.
 
 ## Features
@@ -36,27 +36,27 @@ if (!apiKey) {
 
 const gum = new GumClient({ apiKey });
 
-const thread = await gum.threads.create({
+const session = await gum.sessions.create({
   title: "Support session",
   metadata: {
     source: "node",
   },
 });
 
-const threadId = thread.data?.thread_id;
+const sessionId = session.data?.thread_id;
 
-if (!threadId) {
-  throw new Error("Gum did not return a thread_id");
+if (!sessionId) {
+  throw new Error("Gum did not return a Session id (thread_id)");
 }
 
-await gum.threads.addMessages(threadId, [
+await gum.sessions.addMessages(sessionId, [
   {
     role: "user",
     content: "I want to check my order",
   },
 ]);
 
-const context = await gum.threads.getContext(threadId, {
+const context = await gum.sessions.getContext(sessionId, {
   query: "order",
   details: true,
 });
@@ -96,7 +96,7 @@ const gum = new GumClient({
 ### `new GumClient(options)`
 
 Creates a client instance. The client exposes resource groups under
-`gum.threads` and `gum.userActions`.
+`gum.sessions` and `gum.userActions`.
 
 ```ts
 const gum = new GumClient({
@@ -112,26 +112,26 @@ Checks the Gum service health endpoint.
 const health = await gum.health();
 ```
 
-### `gum.threads.create(input?, options?)`
+### `gum.sessions.create(input?, options?)`
 
-Creates a thread.
+Creates a Session.
 
 ```ts
-const thread = await gum.threads.create({
-  title: "Demo thread",
+const session = await gum.sessions.create({
+  title: "Demo session",
   metadata: {
     source: "node",
   },
 });
 ```
 
-### `gum.threads.addMessages(threadId, input, options?)`
+### `gum.sessions.addMessages(sessionId, input, options?)`
 
-Adds messages to a thread. `input` can be either a direct message array or an
+Adds messages to a Session. `input` can be either a direct message array or an
 object with a `messages` property.
 
 ```ts
-await gum.threads.addMessages("thread_123", [
+await gum.sessions.addMessages("session_123", [
   {
     role: "user",
     content: "Hello",
@@ -142,7 +142,7 @@ await gum.threads.addMessages("thread_123", [
   },
 ]);
 
-await gum.threads.addMessages("thread_123", {
+await gum.sessions.addMessages("session_123", {
   messages: [
     {
       role: "user",
@@ -155,13 +155,13 @@ await gum.threads.addMessages("thread_123", {
 });
 ```
 
-### `gum.threads.getContext(threadId, params?, options?)`
+### `gum.sessions.getContext(sessionId, params?, options?)`
 
-Retrieves context for a thread. Pass `query` to focus the retrieval and
+Retrieves context for a Session. Pass `query` to focus the retrieval and
 `details` to include detailed context data when the API supports it.
 
 ```ts
-const context = await gum.threads.getContext("thread_123", {
+const context = await gum.sessions.getContext("session_123", {
   query: "order",
   details: true,
 });
@@ -195,8 +195,8 @@ Every SDK method accepts optional request options as its last argument.
 ```ts
 const controller = new AbortController();
 
-await gum.threads.getContext(
-  "thread_123",
+await gum.sessions.getContext(
+  "session_123",
   { query: "order" },
   {
     timeoutMs: 5_000,
@@ -228,9 +228,9 @@ type GumEnvelope<T = unknown> = {
 };
 ```
 
-For example, `gum.threads.create()` returns
-`Promise<GumEnvelope<CreateThreadResponse>>`, where `data.thread_id` contains
-the created thread id when the API returns it.
+For example, `gum.sessions.create()` returns
+`Promise<GumEnvelope<CreateSessionResponse>>`, where `data.thread_id` contains
+the created Session id when the API returns it.
 
 ## Error Handling
 
@@ -242,7 +242,7 @@ import {
 } from "@steamory-agent-kit/gum-sdk";
 
 try {
-  await gum.threads.create({ title: "Demo thread" });
+  await gum.sessions.create({ title: "Demo session" });
 } catch (error) {
   if (error instanceof GumApiError) {
     console.error(error.status, error.detail, error.body);
@@ -272,9 +272,11 @@ import type {
   ActionLogInput,
   GumClientOptions,
   Message,
-  ThreadContext,
+  SessionContext,
 } from "@steamory-agent-kit/gum-sdk";
 ```
+
+Session public types use the same naming as the `gum.sessions` resource group.
 
 ## Development
 
@@ -294,8 +296,13 @@ publishing this SDK to npm.
 GitLab requirements:
 
 - Add a masked and protected CI/CD variable named `NPM_TOKEN`.
-- `NPM_TOKEN` must contain an npm automation token with publish permission for
+- `NPM_TOKEN` must contain an npm granular access token with publish permission for
   `@steamory-agent-kit/gum-sdk`.
+- If the npm account or package requires 2FA for publishing, create the token
+  with bypass 2FA enabled. Otherwise the publish job will fail with `EOTP`.
+- For a one-off manual publish with a non-bypass token, run the `publish` job
+  manually and add a temporary `NPM_OTP` variable containing the current
+  authenticator code.
 
 Pipeline flow:
 
@@ -309,8 +316,9 @@ npm publish --access public --tag latest
 ```
 
 The publish job runs automatically for Git tags and can be run manually from the
-default branch. Before publishing, update the `version` in `package.json`. npm
-does not allow publishing the same package version twice.
+default branch. Automatic tag publishing requires an `NPM_TOKEN` that can publish
+without an interactive OTP prompt. Before publishing, update the `version` in
+`package.json`. npm does not allow publishing the same package version twice.
 
 ## Contributing
 

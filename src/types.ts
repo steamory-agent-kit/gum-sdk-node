@@ -24,7 +24,7 @@ export interface GumEnvelope<T = unknown> {
   [key: string]: unknown;
 }
 
-export interface ThreadCreateRequest {
+export interface SessionCreateRequest {
   title?: string | null;
   metadata?: Record<string, unknown> | null;
 }
@@ -45,12 +45,12 @@ export interface AddMessagesRequest {
   messages: Message[];
 }
 
-export interface GetThreadContextParams {
+export interface GetSessionContextParams {
   query?: string;
   details?: boolean;
 }
 
-export interface CreateThreadResponse {
+export interface CreateSessionResponse {
   thread_id: string;
   [key: string]: unknown;
 }
@@ -59,7 +59,7 @@ export interface AddMessagesResponse {
   [key: string]: unknown;
 }
 
-export interface ThreadContext {
+export interface SessionContext {
   messages?: unknown[];
   observations?: unknown[];
   propositions?: unknown[];

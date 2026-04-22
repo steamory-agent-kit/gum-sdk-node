@@ -7,6 +7,7 @@ default:
 stages:
   - verify
   - build
+  - sync
   - publish
 
 variables:
@@ -49,6 +50,32 @@ build:
     paths:
       - dist/
 
+sync_github:
+  stage: sync
+  image:
+    name: alpine/git:latest
+    entrypoint: [""]
+  needs:
+    - build
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - when: never
+  script:
+    - |
+      if [ -z "${GITHUB_TOKEN:-}" ]; then
+        echo "Missing GitLab CI/CD variable: GITHUB_TOKEN"
+        exit 1
+      fi
+    - |
+      if [ -z "${GITHUB_REPOSITORY:-}" ]; then
+        echo "Missing GitLab CI/CD variable: GITHUB_REPOSITORY"
+        exit 1
+      fi
+    - git config --global --add safe.directory "${CI_PROJECT_DIR}"
+    - git remote remove github 2>/dev/null || true
+    - git remote add github "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+    - git push github "HEAD:main"
+
 publish:
   stage: publish
   needs:
@@ -78,6 +105,11 @@ publish:
       fi
     - printf "%s\n" "registry=${NPM_REGISTRY}" "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > .npmrc
     - npm whoami --registry "${NPM_REGISTRY}"
-    - npm publish --access public --tag "${NPM_DIST_TAG}" --registry "${NPM_REGISTRY}"
+    - |
+      if [ -n "${NPM_OTP:-}" ]; then
+        npm publish --access public --tag "${NPM_DIST_TAG}" --registry "${NPM_REGISTRY}" --otp "${NPM_OTP}"
+      else
+        npm publish --access public --tag "${NPM_DIST_TAG}" --registry "${NPM_REGISTRY}"
+      fi
   after_script:
     - rm -f .npmrc ./*.tgz

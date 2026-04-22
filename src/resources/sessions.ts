@@ -2,28 +2,28 @@ import type { GumClient } from "../client";
 import type {
   AddMessagesRequest,
   AddMessagesResponse,
-  CreateThreadResponse,
-  GetThreadContextParams,
+  CreateSessionResponse,
+  GetSessionContextParams,
   GumEnvelope,
   Message,
   RequestOptions,
-  ThreadContext,
-  ThreadCreateRequest,
+  SessionContext,
+  SessionCreateRequest,
 } from "../types";
 import { buildQuery } from "../utils/query";
 
-export class ThreadsResource {
+export class SessionsResource {
   constructor(private readonly client: GumClient) {}
 
   create(
-    input: ThreadCreateRequest = {},
+    input: SessionCreateRequest = {},
     options?: RequestOptions,
-  ): Promise<GumEnvelope<CreateThreadResponse>> {
+  ): Promise<GumEnvelope<CreateSessionResponse>> {
     return this.client.request("POST", "/api/threads", input, options);
   }
 
   addMessages(
-    threadId: string,
+    sessionId: string,
     input: AddMessagesRequest | Message[],
     options?: RequestOptions,
   ): Promise<GumEnvelope<AddMessagesResponse>> {
@@ -31,17 +31,17 @@ export class ThreadsResource {
 
     return this.client.request(
       "POST",
-      `/api/threads/${encodeURIComponent(threadId)}/messages`,
+      `/api/threads/${encodeURIComponent(sessionId)}/messages`,
       body,
       options,
     );
   }
 
   getContext(
-    threadId: string,
-    params: GetThreadContextParams = {},
+    sessionId: string,
+    params: GetSessionContextParams = {},
     options?: RequestOptions,
-  ): Promise<GumEnvelope<ThreadContext>> {
+  ): Promise<GumEnvelope<SessionContext>> {
     const query = buildQuery({
       query: params.query,
       details: params.details,
@@ -49,7 +49,7 @@ export class ThreadsResource {
 
     return this.client.request(
       "GET",
-      `/api/threads/${encodeURIComponent(threadId)}/context${query}`,
+      `/api/threads/${encodeURIComponent(sessionId)}/context${query}`,
       undefined,
       options,
     );

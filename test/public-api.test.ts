@@ -10,4 +10,14 @@ describe("public API", () => {
 
     expectTypeOf(client.userActions).not.toHaveProperty("query");
   });
+
+  it("exposes Session APIs through sessions", () => {
+    const client = new GumClient({
+      apiKey: "test-key",
+      fetch: async () => new Response("{}"),
+    });
+
+    expectTypeOf(client).toHaveProperty("sessions");
+    expectTypeOf(client).not.toHaveProperty("threads");
+  });
 });

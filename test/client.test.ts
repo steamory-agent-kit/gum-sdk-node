@@ -59,28 +59,28 @@ describe("GumClient", () => {
   });
 
   it("sends Authorization with Api-Key prefix", async () => {
-    const fetch = createJsonFetch({ data: { thread_id: "thread_123" } });
+    const fetch = createJsonFetch({ data: { thread_id: "session_123" } });
     const client = new GumClient({ apiKey: "test-key", fetch });
 
-    await client.threads.create({ title: "demo" });
+    await client.sessions.create({ title: "demo" });
 
     expect(headersFor(fetch).Authorization).toBe("Api-Key test-key");
   });
 
   it("does not duplicate an existing Api-Key prefix", async () => {
-    const fetch = createJsonFetch({ data: { thread_id: "thread_123" } });
+    const fetch = createJsonFetch({ data: { thread_id: "session_123" } });
     const client = new GumClient({ apiKey: "Api-Key test-key", fetch });
 
-    await client.threads.create({ title: "demo" });
+    await client.sessions.create({ title: "demo" });
 
     expect(headersFor(fetch).Authorization).toBe("Api-Key test-key");
   });
 
-  it("creates a thread", async () => {
-    const fetch = createJsonFetch({ data: { thread_id: "thread_123" } });
+  it("creates a Session", async () => {
+    const fetch = createJsonFetch({ data: { thread_id: "session_123" } });
     const client = new GumClient({ apiKey: "test-key", fetch });
 
-    await client.threads.create({ title: "demo", metadata: { source: "test" } });
+    await client.sessions.create({ title: "demo", metadata: { source: "test" } });
 
     expect(fetch).toHaveBeenCalledWith(
       "https://gum.asix.inc/api/threads",
@@ -91,11 +91,11 @@ describe("GumClient", () => {
     );
   });
 
-  it("creates a thread with the default body when no input is provided", async () => {
-    const fetch = createJsonFetch({ data: { thread_id: "thread_123" } });
+  it("creates a Session with the default body when no input is provided", async () => {
+    const fetch = createJsonFetch({ data: { thread_id: "session_123" } });
     const client = new GumClient({ apiKey: "test-key", fetch });
 
-    await client.threads.create();
+    await client.sessions.create();
 
     expect(fetch).toHaveBeenCalledWith(
       "https://gum.asix.inc/api/threads",
@@ -111,12 +111,12 @@ describe("GumClient", () => {
     const client = new GumClient({ apiKey: "test-key", fetch });
     const timestamp = new Date("2026-04-22T00:00:00.000Z");
 
-    await client.threads.addMessages("thread/123", [
+    await client.sessions.addMessages("session/123", [
       { role: "user", content: "hello", timestamp },
     ]);
 
     expect(fetch).toHaveBeenCalledWith(
-      "https://gum.asix.inc/api/threads/thread%2F123/messages",
+      "https://gum.asix.inc/api/threads/session%2F123/messages",
       expect.objectContaining({
         method: "POST",
         body: JSON.stringify({
@@ -136,12 +136,12 @@ describe("GumClient", () => {
     const fetch = createJsonFetch({ data: {} });
     const client = new GumClient({ apiKey: "test-key", fetch });
 
-    await client.threads.addMessages("thread_123", {
+    await client.sessions.addMessages("session_123", {
       messages: [{ role: "assistant", content: "hi", metadata: { ignored: undefined } }],
     });
 
     expect(fetch).toHaveBeenCalledWith(
-      "https://gum.asix.inc/api/threads/thread_123/messages",
+      "https://gum.asix.inc/api/threads/session_123/messages",
       expect.objectContaining({
         method: "POST",
         body: JSON.stringify({
@@ -151,29 +151,29 @@ describe("GumClient", () => {
     );
   });
 
-  it("gets thread context with query params", async () => {
+  it("gets Session context with query params", async () => {
     const fetch = createJsonFetch({ data: { messages: [] } });
     const client = new GumClient({ apiKey: "test-key", fetch });
 
-    await client.threads.getContext("thread_123", {
+    await client.sessions.getContext("session_123", {
       query: "订单",
       details: true,
     });
 
     expect(fetch).toHaveBeenCalledWith(
-      "https://gum.asix.inc/api/threads/thread_123/context?query=%E8%AE%A2%E5%8D%95&details=true",
+      "https://gum.asix.inc/api/threads/session_123/context?query=%E8%AE%A2%E5%8D%95&details=true",
       expect.objectContaining({ method: "GET" }),
     );
   });
 
-  it("omits undefined thread context query params", async () => {
+  it("omits undefined Session context query params", async () => {
     const fetch = createJsonFetch({ data: { messages: [] } });
     const client = new GumClient({ apiKey: "test-key", fetch });
 
-    await client.threads.getContext("thread_123");
+    await client.sessions.getContext("session_123");
 
     expect(fetch).toHaveBeenCalledWith(
-      "https://gum.asix.inc/api/threads/thread_123/context",
+      "https://gum.asix.inc/api/threads/session_123/context",
       expect.objectContaining({ method: "GET" }),
     );
   });

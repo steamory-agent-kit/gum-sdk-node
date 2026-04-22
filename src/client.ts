@@ -1,5 +1,5 @@
 import { GumApiError, GumConnectionError, GumTimeoutError } from "./errors";
-import { ThreadsResource } from "./resources/threads";
+import { SessionsResource } from "./resources/sessions";
 import { UserActionsResource } from "./resources/user-actions";
 import type { FetchLike, GumClientOptions, RequestOptions } from "./types";
 import { normalizeHost } from "./utils/normalize-host";
@@ -10,7 +10,7 @@ const DEFAULT_TIMEOUT_MS = 30_000;
 export class GumClient {
   readonly host: string;
   readonly timeoutMs: number;
-  readonly threads: ThreadsResource;
+  readonly sessions: SessionsResource;
   readonly userActions: UserActionsResource;
 
   private readonly apiKey: string;
@@ -21,7 +21,7 @@ export class GumClient {
     this.host = normalizeHost(options.host);
     this.timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
     this.fetchFn = options.fetch ?? globalThis.fetch.bind(globalThis);
-    this.threads = new ThreadsResource(this);
+    this.sessions = new SessionsResource(this);
     this.userActions = new UserActionsResource(this);
   }
 
