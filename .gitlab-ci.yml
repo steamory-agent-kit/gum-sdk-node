@@ -74,7 +74,13 @@ sync_github:
     - git config --global --add safe.directory "${CI_PROJECT_DIR}"
     - git remote remove github 2>/dev/null || true
     - git remote add github "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY_NODE_SDK}.git"
-    - git push github "HEAD:main"
+    - |
+      GITHUB_MAIN_SHA="$(git ls-remote --heads github main | awk '{print $1}')"
+      if [ -n "${GITHUB_MAIN_SHA}" ]; then
+        git push --force-with-lease=refs/heads/main:"${GITHUB_MAIN_SHA}" github "HEAD:main"
+      else
+        git push github "HEAD:main"
+      fi
 
 publish:
   stage: publish
