@@ -1,4 +1,4 @@
 interface:
   display_name: "Gum"
-  short_description: "Use Gum in Node.js backends"
+  short_description: "Use GUM as Memory in Node.js backends"
   default_prompt: "Use $gum to integrate Gum memory sessions and user actions in this Node.js backend."

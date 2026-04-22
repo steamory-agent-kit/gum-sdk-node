@@ -1,9 +1,11 @@
 ---
 name: gum
-description: Use when Codex needs to integrate or modify @steamory-agent-kit/gum usage in a Node.js backend, including creating Gum sessions, appending conversation messages, retrieving session context or memory, writing user action events, configuring GumClient with GUM_API_KEY, host, timeout, or custom fetch, and handling Gum SDK errors. Do not use for browser-only frontend code that would expose Gum API keys.
+description: "Use when AI Coding needs to integrate or modify @steamory-agent-kit/gum usage in a Node.js backend. GUM is a Memory service for agents and applications: it stores conversation messages and user actions, then retrieves contextual memory for later turns. Includes creating Gum sessions, appending conversation messages, retrieving session context or memory, writing user action events, configuring GumClient with GUM_API_KEY, host, timeout, or custom fetch, and handling Gum SDK errors. Do not use for browser-only frontend code that would expose Gum API keys."
 ---
 
 # Gum SDK
+
+GUM is used as a Memory layer for agents and applications. It helps a backend store conversation messages and user actions, then recall relevant context in later turns or workflows.
 
 Use `@steamory-agent-kit/gum` when a Node.js backend needs Gum memory sessions, conversation message ingestion, contextual recall, or user action logging.
 
