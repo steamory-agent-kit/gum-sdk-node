@@ -1,0 +1,79 @@
+image: node:20
+
+stages:
+  - verify
+  - build
+  - publish
+
+variables:
+  NPM_REGISTRY: "https://registry.npmjs.org/"
+  NPM_DIST_TAG: "latest"
+  npm_config_cache: "$CI_PROJECT_DIR/.npm"
+
+cache:
+  key:
+    files:
+      - package-lock.json
+  paths:
+    - .npm/
+
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH'
+    - if: '$CI_COMMIT_TAG'
+
+install:
+  stage: verify
+  script:
+    - node --version
+    - npm --version
+    - npm ci --prefer-offline
+    - npm run typecheck
+    - npm test
+
+build:
+  stage: build
+  needs:
+    - install
+  script:
+    - npm ci --prefer-offline
+    - npm run build
+    - npm pack --dry-run
+  artifacts:
+    expire_in: 1 week
+    paths:
+      - dist/
+
+publish:
+  stage: publish
+  needs:
+    - build
+  rules:
+    - if: '$CI_COMMIT_TAG'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+      when: manual
+      allow_failure: false
+    - when: never
+  script:
+    - npm ci --prefer-offline
+    - npm run build
+    - npm pack --dry-run
+    - PACKAGE_NAME="$(node -p "require('./package.json').name")"
+    - PACKAGE_VERSION="$(node -p "require('./package.json').version")"
+    - PACKAGE_SPEC="${PACKAGE_NAME}@${PACKAGE_VERSION}"
+    - |
+      if npm view "${PACKAGE_SPEC}" version --registry "${NPM_REGISTRY}" >/dev/null 2>&1; then
+        echo "${PACKAGE_SPEC} already exists on npm. Skip publish."
+        exit 0
+      fi
+    - |
+      if [ -z "${NPM_TOKEN:-}" ]; then
+        echo "Missing GitLab CI/CD variable: NPM_TOKEN"
+        exit 1
+      fi
+    - printf "%s\n" "registry=${NPM_REGISTRY}" "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > .npmrc
+    - npm whoami --registry "${NPM_REGISTRY}"
+    - npm publish --access public --tag "${NPM_DIST_TAG}" --registry "${NPM_REGISTRY}"
+  after_script:
+    - rm -f .npmrc ./*.tgz
