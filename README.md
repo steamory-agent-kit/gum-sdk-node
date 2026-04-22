@@ -37,28 +37,35 @@ if (!apiKey) {
 const gum = new GumClient({ apiKey });
 
 const session = await gum.sessions.create({
+  user_id: "user_123",
   title: "Support session",
   metadata: {
     source: "node",
   },
 });
 
-const sessionId = session.data?.thread_id;
+await session.addMessage({
+  role: "user",
+  content: "I want to check my order",
+});
 
-if (!sessionId) {
-  throw new Error("Gum did not return a Session id (thread_id)");
-}
-
-await gum.sessions.addMessages(sessionId, [
+await session.addMessages([
   {
-    role: "user",
-    content: "I want to check my order",
+    role: "assistant",
+    content: "I can help with that.",
   },
 ]);
 
-const context = await gum.sessions.getContext(sessionId, {
+const context = await session.getContext({
   query: "order",
   details: true,
+});
+
+const restoredSession = gum.sessions.fromId("session_123");
+
+await restoredSession.addMessage({
+  role: "user",
+  content: "Continue this Session later",
 });
 
 await gum.userActions.create({
@@ -112,23 +119,122 @@ Checks the Gum service health endpoint.
 const health = await gum.health();
 ```
 
-### `gum.sessions.create(input?, options?)`
+### `gum.sessions.create(input, options?)`
 
-Creates a Session.
+Creates a Session and returns a `Session` object. The object exposes the
+created Session id and convenience methods that automatically use that id.
+`input.user_id` is required by the Gum API.
 
 ```ts
 const session = await gum.sessions.create({
+  user_id: "user_123",
   title: "Demo session",
   metadata: {
     source: "node",
+  },
+});
+
+console.log(session.id);
+console.log(session.rawResponse);
+```
+
+If Gum returns a successful response without `data.session_id`, the SDK throws
+`Error: Gum API did not return data.session_id`.
+
+### `gum.sessions.fromId(sessionId)`
+
+Creates a local `Session` object from an existing Session id without making a
+network request. Use this when the Session id is already stored in your
+application and you want the object-style API again.
+
+```ts
+const session = gum.sessions.fromId("session_123");
+
+await session.addMessage({
+  role: "user",
+  content: "Continue this Session later",
+});
+
+const context = await session.getContext({
+  query: "preferences",
+});
+```
+
+### `session.addMessage(message, options?)`
+
+Adds one message to the created Session.
+
+```ts
+await session.addMessage({
+  role: "user",
+  content: "Hello",
+});
+```
+
+### `session.addMessages(input, options?)`
+
+Adds messages to the created Session. `input` can be either a direct message
+array or an object with a `messages` property.
+
+```ts
+await session.addMessages([
+  {
+    role: "user",
+    content: "Hello",
+  },
+  {
+    role: "assistant",
+    content: "Hi, how can I help?",
+  },
+]);
+
+await session.addMessages({
+  messages: [
+    {
+      role: "user",
+      content: "Can you remember this preference?",
+      metadata: {
+        channel: "chat",
+      },
+    },
+  ],
+});
+```
+
+### `session.getContext(params?, options?)`
+
+Retrieves context for the created Session. Pass `query` to focus the retrieval
+and `details` to include detailed context data when the API supports it.
+
+```ts
+const context = await session.getContext({
+  query: "order",
+  details: true,
+});
+```
+
+Pass `recall_config` to override context recall behavior. When
+`recall_config` is present, the SDK uses the POST context endpoint so the
+configuration can be sent as a JSON body.
+
+```ts
+const context = await session.getContext({
+  query: "order",
+  details: true,
+  recall_config: {
+    message_recent_limit: 20,
+    message_semantic_top_k: 8,
+    query_router: "single_hop_parallel",
+    enable_long_term_recall: false,
   },
 });
 ```
 
 ### `gum.sessions.addMessages(sessionId, input, options?)`
 
-Adds messages to a Session. `input` can be either a direct message array or an
-object with a `messages` property.
+Lower-level API for adding messages when you already have a Session id.
+`input` can be either a direct message array or an object with a `messages`
+property.
 
 ```ts
 await gum.sessions.addMessages("session_123", [
@@ -157,8 +263,9 @@ await gum.sessions.addMessages("session_123", {
 
 ### `gum.sessions.getContext(sessionId, params?, options?)`
 
-Retrieves context for a Session. Pass `query` to focus the retrieval and
-`details` to include detailed context data when the API supports it.
+Lower-level API for retrieving context when you already have a Session id. Pass
+`query` to focus the retrieval and `details` to include detailed context data
+when the API supports it.
 
 ```ts
 const context = await gum.sessions.getContext("session_123", {
@@ -166,6 +273,9 @@ const context = await gum.sessions.getContext("session_123", {
   details: true,
 });
 ```
+
+As with `session.getContext`, this lower-level method automatically uses the
+POST context endpoint when `recall_config` is present.
 
 ### `gum.userActions.create(input, options?)`
 
@@ -229,8 +339,12 @@ type GumEnvelope<T = unknown> = {
 ```
 
 For example, `gum.sessions.create()` returns
-`Promise<GumEnvelope<CreateSessionResponse>>`, where `data.thread_id` contains
-the created Session id when the API returns it.
+`Promise<Session>`. The created Session id is available as `session.id`, and
+the original create response envelope is available as `session.rawResponse`.
+This is a breaking change from earlier 0.x versions where
+`gum.sessions.create()` returned `Promise<GumEnvelope<CreateSessionResponse>>`.
+`gum.sessions.fromId(sessionId)` also returns a `Session`, using a synthetic
+`rawResponse` shaped as `{ data: { session_id: sessionId } }`.
 
 ## Error Handling
 
@@ -242,7 +356,7 @@ import {
 } from "@steamory-agent-kit/gum-sdk";
 
 try {
-  await gum.sessions.create({ title: "Demo session" });
+  await gum.sessions.create({ user_id: "user_123", title: "Demo session" });
 } catch (error) {
   if (error instanceof GumApiError) {
     console.error(error.status, error.detail, error.body);
@@ -272,6 +386,8 @@ import type {
   ActionLogInput,
   GumClientOptions,
   Message,
+  RecallConfig,
+  Session,
   SessionContext,
 } from "@steamory-agent-kit/gum-sdk";
 ```

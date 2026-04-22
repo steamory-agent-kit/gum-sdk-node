@@ -4,6 +4,14 @@
   "description": "Node.js SDK for the Gum service.",
   "license": "MIT",
   "author": "",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/steamory-agent-kit/gum-sdk-node.git"
+  },
+  "bugs": {
+    "url": "https://github.com/steamory-agent-kit/gum-sdk-node/issues"
+  },
+  "homepage": "https://github.com/steamory-agent-kit/gum-sdk-node#readme",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",

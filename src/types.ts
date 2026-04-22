@@ -25,6 +25,7 @@ export interface GumEnvelope<T = unknown> {
 }
 
 export interface SessionCreateRequest {
+  user_id: string;
   title?: string | null;
   metadata?: Record<string, unknown> | null;
 }
@@ -42,16 +43,36 @@ export interface Message {
 }
 
 export interface AddMessagesRequest {
+  user_id?: string | null;
   messages: Message[];
+}
+
+export type QueryRouter = "single_hop_direct" | "single_hop_parallel" | "multi_hop_chain";
+
+export interface RecallConfig {
+  message_recent_limit?: number;
+  message_semantic_top_k?: number;
+  message_semantic_min_score?: number;
+  query_router?: QueryRouter | null;
+  observation_recent_limit?: number;
+  observation_semantic_top_k?: number;
+  observation_semantic_min_score?: number;
+  proposition_top_k?: number;
+  topic_top_k?: number;
+  observation_context_top_k?: number;
+  long_term_rrf_k?: number;
+  enable_long_term_rerank?: boolean;
+  enable_long_term_recall?: boolean;
 }
 
 export interface GetSessionContextParams {
   query?: string;
   details?: boolean;
+  recall_config?: RecallConfig | null;
 }
 
 export interface CreateSessionResponse {
-  thread_id: string;
+  session_id: string;
   [key: string]: unknown;
 }
 
@@ -89,6 +110,6 @@ export type ActionLogInput = Omit<ActionLog, "timestamp"> & {
 };
 
 export interface CreateActionResponse {
-  log_id: string;
+  log_id?: string | null;
   [key: string]: unknown;
 }

@@ -1,4 +1,5 @@
 export { GumClient } from "./client";
+export { Session } from "./resources/sessions";
 export {
   GumApiError,
   GumConnectionError,
@@ -17,6 +18,8 @@ export type {
   GumEnvelope,
   Message,
   ProcessingStatus,
+  QueryRouter,
+  RecallConfig,
   RequestOptions,
   SessionContext,
   SessionCreateRequest,

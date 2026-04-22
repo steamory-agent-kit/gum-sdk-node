@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { GumApiError, GumConnectionError, GumTimeoutError } from "../src/errors";
-import { GumClient } from "../src";
+import { GumClient, Session } from "../src";
 import type { FetchLike } from "../src/types";
 
 describe("GumClient", () => {
@@ -59,49 +59,216 @@ describe("GumClient", () => {
   });
 
   it("sends Authorization with Api-Key prefix", async () => {
-    const fetch = createJsonFetch({ data: { thread_id: "session_123" } });
+    const fetch = createJsonFetch({ data: { session_id: "session_123" } });
     const client = new GumClient({ apiKey: "test-key", fetch });
 
-    await client.sessions.create({ title: "demo" });
+    await client.sessions.create({ user_id: "user_123", title: "demo" });
 
     expect(headersFor(fetch).Authorization).toBe("Api-Key test-key");
   });
 
   it("does not duplicate an existing Api-Key prefix", async () => {
-    const fetch = createJsonFetch({ data: { thread_id: "session_123" } });
+    const fetch = createJsonFetch({ data: { session_id: "session_123" } });
     const client = new GumClient({ apiKey: "Api-Key test-key", fetch });
 
-    await client.sessions.create({ title: "demo" });
+    await client.sessions.create({ user_id: "user_123", title: "demo" });
 
     expect(headersFor(fetch).Authorization).toBe("Api-Key test-key");
   });
 
   it("creates a Session", async () => {
-    const fetch = createJsonFetch({ data: { thread_id: "session_123" } });
+    const fetch = createJsonFetch({ data: { session_id: "session_123" } });
     const client = new GumClient({ apiKey: "test-key", fetch });
 
-    await client.sessions.create({ title: "demo", metadata: { source: "test" } });
+    const session = await client.sessions.create({
+      user_id: "user_123",
+      title: "demo",
+      metadata: { source: "test" },
+    });
 
     expect(fetch).toHaveBeenCalledWith(
-      "https://gum.asix.inc/api/threads",
+      "https://gum.asix.inc/api/sessions",
       expect.objectContaining({
         method: "POST",
-        body: JSON.stringify({ title: "demo", metadata: { source: "test" } }),
+        body: JSON.stringify({
+          user_id: "user_123",
+          title: "demo",
+          metadata: { source: "test" },
+        }),
+      }),
+    );
+    expect(session).toBeInstanceOf(Session);
+    expect(session.id).toBe("session_123");
+    expect(session.rawResponse).toEqual({ data: { session_id: "session_123" } });
+  });
+
+  it("creates a Session with the required user id", async () => {
+    const fetch = createJsonFetch({ data: { session_id: "session_123" } });
+    const client = new GumClient({ apiKey: "test-key", fetch });
+
+    const session = await client.sessions.create({ user_id: "user_123" });
+
+    expect(fetch).toHaveBeenCalledWith(
+      "https://gum.asix.inc/api/sessions",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({ user_id: "user_123" }),
+      }),
+    );
+    expect(session.id).toBe("session_123");
+  });
+
+  it("throws a clear error when create does not return a Session id", async () => {
+    const fetch = createJsonFetch({ data: {} });
+    const client = new GumClient({ apiKey: "test-key", fetch });
+
+    await expect(client.sessions.create({ user_id: "user_123" })).rejects.toThrow(
+      "Gum API did not return data.session_id",
+    );
+  });
+
+  it("restores a Session object from an existing Session id without a request", () => {
+    const fetch = createJsonFetch({ data: { accepted: true } });
+    const client = new GumClient({ apiKey: "test-key", fetch });
+
+    const session = client.sessions.fromId("session_123");
+
+    expect(session).toBeInstanceOf(Session);
+    expect(session.id).toBe("session_123");
+    expect(session.rawResponse).toEqual({ data: { session_id: "session_123" } });
+    expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("uses a restored Session object to add messages", async () => {
+    const fetch = createJsonFetch({ data: { accepted: true } });
+    const client = new GumClient({ apiKey: "test-key", fetch });
+    const session = client.sessions.fromId("session/123");
+
+    await expect(
+      session.addMessage({
+        role: "user",
+        content: "hello",
+      }),
+    ).resolves.toEqual({ data: { accepted: true } });
+
+    expect(fetch).toHaveBeenCalledWith(
+      "https://gum.asix.inc/api/sessions/session%2F123/messages",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          messages: [{ role: "user", content: "hello" }],
+        }),
       }),
     );
   });
 
-  it("creates a Session with the default body when no input is provided", async () => {
-    const fetch = createJsonFetch({ data: { thread_id: "session_123" } });
+  it("adds one message through a Session object", async () => {
+    const fetch = createJsonFetchSequence(
+      { data: { session_id: "session/123" } },
+      { data: { accepted: true } },
+    );
     const client = new GumClient({ apiKey: "test-key", fetch });
+    const session = await client.sessions.create({ user_id: "user_123" });
 
-    await client.sessions.create();
+    await expect(
+      session.addMessage({
+        role: "user",
+        content: "hello",
+      }),
+    ).resolves.toEqual({ data: { accepted: true } });
 
-    expect(fetch).toHaveBeenCalledWith(
-      "https://gum.asix.inc/api/threads",
+    expect(fetch).toHaveBeenLastCalledWith(
+      "https://gum.asix.inc/api/sessions/session%2F123/messages",
       expect.objectContaining({
         method: "POST",
-        body: JSON.stringify({}),
+        body: JSON.stringify({
+          messages: [{ role: "user", content: "hello" }],
+        }),
+      }),
+    );
+  });
+
+  it("adds messages through a Session object", async () => {
+    const fetch = createJsonFetchSequence(
+      { data: { session_id: "session_123" } },
+      { data: { accepted: true } },
+    );
+    const client = new GumClient({ apiKey: "test-key", fetch });
+    const session = await client.sessions.create({ user_id: "user_123" });
+
+    await expect(
+      session.addMessages({
+        user_id: "user_123",
+        messages: [{ role: "assistant", content: "hi" }],
+      }),
+    ).resolves.toEqual({ data: { accepted: true } });
+
+    expect(fetch).toHaveBeenLastCalledWith(
+      "https://gum.asix.inc/api/sessions/session_123/messages",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          user_id: "user_123",
+          messages: [{ role: "assistant", content: "hi" }],
+        }),
+      }),
+    );
+  });
+
+  it("gets context through a Session object", async () => {
+    const fetch = createJsonFetchSequence(
+      { data: { session_id: "session_123" } },
+      { data: { messages: [] } },
+    );
+    const client = new GumClient({ apiKey: "test-key", fetch });
+    const session = await client.sessions.create({ user_id: "user_123" });
+
+    await expect(
+      session.getContext({
+        query: "订单",
+        details: true,
+      }),
+    ).resolves.toEqual({ data: { messages: [] } });
+
+    expect(fetch).toHaveBeenLastCalledWith(
+      "https://gum.asix.inc/api/sessions/session_123/context?query=%E8%AE%A2%E5%8D%95&details=true",
+      expect.objectContaining({ method: "GET" }),
+    );
+  });
+
+  it("gets context through a Session object with recall config using POST", async () => {
+    const fetch = createJsonFetchSequence(
+      { data: { session_id: "session_123" } },
+      { data: { messages: [] } },
+    );
+    const client = new GumClient({ apiKey: "test-key", fetch });
+    const session = await client.sessions.create({ user_id: "user_123" });
+
+    await expect(
+      session.getContext({
+        query: "订单",
+        details: true,
+        recall_config: {
+          message_recent_limit: 20,
+          message_semantic_top_k: 8,
+          query_router: "single_hop_parallel",
+          enable_long_term_recall: false,
+        },
+      }),
+    ).resolves.toEqual({ data: { messages: [] } });
+
+    expect(fetch).toHaveBeenLastCalledWith(
+      "https://gum.asix.inc/api/sessions/session_123/context?query=%E8%AE%A2%E5%8D%95&details=true",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          recall_config: {
+            message_recent_limit: 20,
+            message_semantic_top_k: 8,
+            query_router: "single_hop_parallel",
+            enable_long_term_recall: false,
+          },
+        }),
       }),
     );
   });
@@ -116,7 +283,7 @@ describe("GumClient", () => {
     ]);
 
     expect(fetch).toHaveBeenCalledWith(
-      "https://gum.asix.inc/api/threads/session%2F123/messages",
+      "https://gum.asix.inc/api/sessions/session%2F123/messages",
       expect.objectContaining({
         method: "POST",
         body: JSON.stringify({
@@ -141,7 +308,7 @@ describe("GumClient", () => {
     });
 
     expect(fetch).toHaveBeenCalledWith(
-      "https://gum.asix.inc/api/threads/session_123/messages",
+      "https://gum.asix.inc/api/sessions/session_123/messages",
       expect.objectContaining({
         method: "POST",
         body: JSON.stringify({
@@ -161,8 +328,35 @@ describe("GumClient", () => {
     });
 
     expect(fetch).toHaveBeenCalledWith(
-      "https://gum.asix.inc/api/threads/session_123/context?query=%E8%AE%A2%E5%8D%95&details=true",
+      "https://gum.asix.inc/api/sessions/session_123/context?query=%E8%AE%A2%E5%8D%95&details=true",
       expect.objectContaining({ method: "GET" }),
+    );
+  });
+
+  it("gets Session context with recall config using POST", async () => {
+    const fetch = createJsonFetch({ data: { messages: [] } });
+    const client = new GumClient({ apiKey: "test-key", fetch });
+
+    await client.sessions.getContext("session_123", {
+      query: "订单",
+      details: true,
+      recall_config: {
+        message_recent_limit: 20,
+        query_router: "multi_hop_chain",
+      },
+    });
+
+    expect(fetch).toHaveBeenCalledWith(
+      "https://gum.asix.inc/api/sessions/session_123/context?query=%E8%AE%A2%E5%8D%95&details=true",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          recall_config: {
+            message_recent_limit: 20,
+            query_router: "multi_hop_chain",
+          },
+        }),
+      }),
     );
   });
 
@@ -173,24 +367,26 @@ describe("GumClient", () => {
     await client.sessions.getContext("session_123");
 
     expect(fetch).toHaveBeenCalledWith(
-      "https://gum.asix.inc/api/threads/session_123/context",
+      "https://gum.asix.inc/api/sessions/session_123/context",
       expect.objectContaining({ method: "GET" }),
     );
   });
 
   it("creates a user action and serializes Date timestamps", async () => {
-    const fetch = createJsonFetch({ data: { log_id: "log_123" } });
+    const fetch = createJsonFetch({});
     const client = new GumClient({ apiKey: "test-key", fetch });
 
-    await client.userActions.create({
-      user_id: "user_123",
-      timestamp: new Date("2026-04-22T01:02:03.000Z"),
-      content: "用户点击了订单详情",
-      event_type: "click",
-    });
+    await expect(
+      client.userActions.create({
+        user_id: "user_123",
+        timestamp: new Date("2026-04-22T01:02:03.000Z"),
+        content: "用户点击了订单详情",
+        event_type: "click",
+      }),
+    ).resolves.toEqual({});
 
     expect(fetch).toHaveBeenCalledWith(
-      "https://gum.asix.inc/user/actions",
+      "https://gum.asix.inc/api/user/actions",
       expect.objectContaining({
         method: "POST",
         body: JSON.stringify({
@@ -215,7 +411,7 @@ describe("GumClient", () => {
     });
 
     expect(fetch).toHaveBeenCalledWith(
-      "https://gum.asix.inc/user/actions",
+      "https://gum.asix.inc/api/user/actions",
       expect.objectContaining({
         body: JSON.stringify({
           user_id: "user_123",
@@ -394,6 +590,20 @@ function createJsonFetch(body: unknown): FetchLike {
       headers: { "content-type": "application/json" },
     }),
   );
+}
+
+function createJsonFetchSequence(...bodies: unknown[]): FetchLike {
+  let index = 0;
+
+  return vi.fn(async () => {
+    const body = bodies[Math.min(index, bodies.length - 1)];
+    index += 1;
+
+    return new Response(JSON.stringify(body), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    });
+  });
 }
 
 function headersFor(fetch: FetchLike): Record<string, string> {

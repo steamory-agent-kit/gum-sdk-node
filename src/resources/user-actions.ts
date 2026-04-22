@@ -13,6 +13,6 @@ export class UserActionsResource {
     input: ActionLogInput,
     options?: RequestOptions,
   ): Promise<GumEnvelope<CreateActionResponse>> {
-    return this.client.request("POST", "/user/actions", input, options);
+    return this.client.request("POST", "/api/user/actions", input, options);
   }
 }
