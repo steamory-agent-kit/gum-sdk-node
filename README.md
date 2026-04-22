@@ -1,6 +1,6 @@
-# @steamory-agent-kit/gum-sdk
+# @steamory-agent-kit/gum
 
-[![npm version](https://img.shields.io/npm/v/@steamory-agent-kit/gum-sdk.svg)](https://www.npmjs.com/package/@steamory-agent-kit/gum-sdk)
+[![npm version](https://img.shields.io/npm/v/@steamory-agent-kit/gum.svg)](https://www.npmjs.com/package/@steamory-agent-kit/gum)
 [![license](https://img.shields.io/badge/license-MIT-green.svg)](#license)
 [![node](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)](https://nodejs.org/)
 
@@ -20,13 +20,13 @@ events from Node.js applications.
 ## Installation
 
 ```sh
-npm install @steamory-agent-kit/gum-sdk
+npm install @steamory-agent-kit/gum
 ```
 
 ## Quick Start
 
 ```ts
-import { GumClient } from "@steamory-agent-kit/gum-sdk";
+import { GumClient } from "@steamory-agent-kit/gum";
 
 const apiKey = process.env.GUM_API_KEY;
 
@@ -82,7 +82,7 @@ console.log(context.data);
 ## Configuration
 
 ```ts
-import { GumClient } from "@steamory-agent-kit/gum-sdk";
+import { GumClient } from "@steamory-agent-kit/gum";
 
 const gum = new GumClient({
   apiKey: process.env.GUM_API_KEY!,
@@ -353,7 +353,7 @@ import {
   GumApiError,
   GumConnectionError,
   GumTimeoutError,
-} from "@steamory-agent-kit/gum-sdk";
+} from "@steamory-agent-kit/gum";
 
 try {
   await gum.sessions.create({ user_id: "user_123", title: "Demo session" });
@@ -389,7 +389,7 @@ import type {
   RecallConfig,
   Session,
   SessionContext,
-} from "@steamory-agent-kit/gum-sdk";
+} from "@steamory-agent-kit/gum";
 ```
 
 Session public types use the same naming as the `gum.sessions` resource group.
@@ -413,7 +413,7 @@ GitLab requirements:
 
 - Add a masked and protected CI/CD variable named `NPM_TOKEN`.
 - `NPM_TOKEN` must contain an npm granular access token with publish permission for
-  `@steamory-agent-kit/gum-sdk`.
+  `@steamory-agent-kit/gum`.
 - If the npm account or package requires 2FA for publishing, create the token
   with bypass 2FA enabled. Otherwise the publish job will fail with `EOTP`.
 - For a one-off manual publish with a non-bypass token, run the `publish` job
