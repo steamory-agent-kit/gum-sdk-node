@@ -67,13 +67,13 @@ sync_github:
         exit 1
       fi
     - |
-      if [ -z "${GITHUB_REPOSITORY:-}" ]; then
-        echo "Missing GitLab CI/CD variable: GITHUB_REPOSITORY"
+      if [ -z "${GITHUB_REPOSITORY_NODE_SDK:-}" ]; then
+        echo "Missing GitLab CI/CD variable: GITHUB_REPOSITORY_NODE_SDK"
         exit 1
       fi
     - git config --global --add safe.directory "${CI_PROJECT_DIR}"
     - git remote remove github 2>/dev/null || true
-    - git remote add github "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+    - git remote add github "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY_NODE_SDK}.git"
     - git push github "HEAD:main"
 
 publish:
