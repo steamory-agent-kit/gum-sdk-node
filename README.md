@@ -1,12 +1,26 @@
-# @steamory-agent-kit/gum
+<h1 align="center">@steamory-agent-kit/gum</h1>
 
-[![npm version](https://img.shields.io/npm/v/@steamory-agent-kit/gum.svg)](https://www.npmjs.com/package/@steamory-agent-kit/gum)
-[![license](https://img.shields.io/badge/license-MIT-green.svg)](#license)
-[![node](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)](https://nodejs.org/)
+<p align="center">
+  <a href="https://www.npmjs.com/package/@steamory-agent-kit/gum"><img alt="npm version" src="https://img.shields.io/npm/v/@steamory-agent-kit/gum.svg"></a>
+  <a href="#license"><img alt="license" src="https://img.shields.io/badge/license-MIT-green.svg"></a>
+  <a href="https://nodejs.org/"><img alt="node" src="https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg"></a>
+</p>
 
-TypeScript-first Node.js SDK for the Gum API. Use it to create conversation
-Sessions, append messages, retrieve contextual memory, and write user action
-events from Node.js applications.
+<p align="center">
+  TypeScript-first Node.js SDK for the Gum API. Use it to create conversation Sessions,
+  append messages, retrieve contextual memory, and write user action events from Node.js
+  applications.
+</p>
+
+---
+
+## Contents
+
+- [Features](#features)
+- [Getting Started](#getting-started)
+- [API Reference](#api-reference)
+- [Runtime Contracts](#runtime-contracts)
+- [Project](#project)
 
 ## Features
 
@@ -17,17 +31,23 @@ events from Node.js applications.
 - Automatic `Date` serialization and undefined-value cleanup for request bodies.
 - Request timeout support with typed API errors, connection errors, and timeout errors.
 
-## Installation
+---
+
+## Getting Started
+
+### Installation
 
 ```sh
+# Install the SDK from npm.
 npm install @steamory-agent-kit/gum
 ```
 
-## Quick Start
+### Quick Start
 
 ```ts
 import { GumClient } from "@steamory-agent-kit/gum";
 
+// Create a client from the environment API key.
 const apiKey = process.env.GUM_API_KEY;
 
 if (!apiKey) {
@@ -36,6 +56,7 @@ if (!apiKey) {
 
 const gum = new GumClient({ apiKey });
 
+// Create a Session and add conversation messages.
 const session = await gum.sessions.create({
   user_id: "user_123",
   title: "Support session",
@@ -56,11 +77,13 @@ await session.addMessages([
   },
 ]);
 
+// Retrieve contextual memory for the Session.
 const context = await session.getContext({
   query: "order",
   details: true,
 });
 
+// Rebuild a Session helper when the id is already stored.
 const restoredSession = gum.sessions.fromId("session_123");
 
 await restoredSession.addMessage({
@@ -68,6 +91,7 @@ await restoredSession.addMessage({
   content: "Continue this Session later",
 });
 
+// Write a user action event.
 await gum.userActions.create({
   user_id: "user_123",
   timestamp: new Date(),
@@ -79,11 +103,12 @@ await gum.userActions.create({
 console.log(context.data);
 ```
 
-## Configuration
+### Configuration
 
 ```ts
 import { GumClient } from "@steamory-agent-kit/gum";
 
+// Configure the client host and default timeout.
 const gum = new GumClient({
   apiKey: process.env.GUM_API_KEY!,
   host: "gum.asix.inc",
@@ -98,34 +123,43 @@ const gum = new GumClient({
 | `timeoutMs` | `number` | `30000` | Default request timeout in milliseconds. Set to `0` to disable the SDK timeout. |
 | `fetch` | `FetchLike` | `globalThis.fetch` | Custom Fetch-compatible implementation for tests, proxies, or custom runtimes. |
 
+---
+
 ## API Reference
 
-### `new GumClient(options)`
+### Client
+
+#### `new GumClient(options)`
 
 Creates a client instance. The client exposes resource groups under
 `gum.sessions` and `gum.userActions`.
 
 ```ts
+// Create a Gum client with the required API key.
 const gum = new GumClient({
   apiKey: "gum_api_key",
 });
 ```
 
-### `gum.health(options?)`
+#### `gum.health(options?)`
 
 Checks the Gum service health endpoint.
 
 ```ts
+// Check the Gum service health endpoint.
 const health = await gum.health();
 ```
 
-### `gum.sessions.create(input, options?)`
+### Sessions
+
+#### `gum.sessions.create(input, options?)`
 
 Creates a Session and returns a `Session` object. The object exposes the
 created Session id and convenience methods that automatically use that id.
 `input.user_id` is required by the Gum API.
 
 ```ts
+// Create a Session and inspect the returned helper.
 const session = await gum.sessions.create({
   user_id: "user_123",
   title: "Demo session",
@@ -141,13 +175,14 @@ console.log(session.rawResponse);
 If Gum returns a successful response without `data.session_id`, the SDK throws
 `Error: Gum API did not return data.session_id`.
 
-### `gum.sessions.fromId(sessionId)`
+#### `gum.sessions.fromId(sessionId)`
 
 Creates a local `Session` object from an existing Session id without making a
 network request. Use this when the Session id is already stored in your
 application and you want the object-style API again.
 
 ```ts
+// Rebuild a Session helper from an existing Session id.
 const session = gum.sessions.fromId("session_123");
 
 await session.addMessage({
@@ -160,23 +195,25 @@ const context = await session.getContext({
 });
 ```
 
-### `session.addMessage(message, options?)`
+#### `session.addMessage(message, options?)`
 
 Adds one message to the created Session.
 
 ```ts
+// Append one message to the Session.
 await session.addMessage({
   role: "user",
   content: "Hello",
 });
 ```
 
-### `session.addMessages(input, options?)`
+#### `session.addMessages(input, options?)`
 
 Adds messages to the created Session. `input` can be either a direct message
 array or an object with a `messages` property.
 
 ```ts
+// Append messages with the array shorthand.
 await session.addMessages([
   {
     role: "user",
@@ -188,6 +225,7 @@ await session.addMessages([
   },
 ]);
 
+// Append messages with the object form.
 await session.addMessages({
   messages: [
     {
@@ -201,12 +239,13 @@ await session.addMessages({
 });
 ```
 
-### `session.getContext(params?, options?)`
+#### `session.getContext(params?, options?)`
 
 Retrieves context for the created Session. Pass `query` to focus the retrieval
 and `details` to include detailed context data when the API supports it.
 
 ```ts
+// Retrieve contextual memory for the Session.
 const context = await session.getContext({
   query: "order",
   details: true,
@@ -218,6 +257,7 @@ Pass `recall_config` to override context recall behavior. When
 configuration can be sent as a JSON body.
 
 ```ts
+// Override context recall behavior for one request.
 const context = await session.getContext({
   query: "order",
   details: true,
@@ -230,13 +270,14 @@ const context = await session.getContext({
 });
 ```
 
-### `gum.sessions.addMessages(sessionId, input, options?)`
+#### `gum.sessions.addMessages(sessionId, input, options?)`
 
 Lower-level API for adding messages when you already have a Session id.
 `input` can be either a direct message array or an object with a `messages`
 property.
 
 ```ts
+// Append messages by Session id with the array shorthand.
 await gum.sessions.addMessages("session_123", [
   {
     role: "user",
@@ -248,6 +289,7 @@ await gum.sessions.addMessages("session_123", [
   },
 ]);
 
+// Append messages by Session id with the object form.
 await gum.sessions.addMessages("session_123", {
   messages: [
     {
@@ -261,13 +303,14 @@ await gum.sessions.addMessages("session_123", {
 });
 ```
 
-### `gum.sessions.getContext(sessionId, params?, options?)`
+#### `gum.sessions.getContext(sessionId, params?, options?)`
 
 Lower-level API for retrieving context when you already have a Session id. Pass
 `query` to focus the retrieval and `details` to include detailed context data
 when the API supports it.
 
 ```ts
+// Retrieve contextual memory by Session id.
 const context = await gum.sessions.getContext("session_123", {
   query: "order",
   details: true,
@@ -277,11 +320,14 @@ const context = await gum.sessions.getContext("session_123", {
 As with `session.getContext`, this lower-level method automatically uses the
 POST context endpoint when `recall_config` is present.
 
-### `gum.userActions.create(input, options?)`
+### User Actions
+
+#### `gum.userActions.create(input, options?)`
 
 Creates one user action log.
 
 ```ts
+// Write a user action event with optional anchors and metadata.
 await gum.userActions.create({
   user_id: "user_123",
   timestamp: new Date(),
@@ -298,11 +344,16 @@ await gum.userActions.create({
 });
 ```
 
-## Request Options
+---
+
+## Runtime Contracts
+
+### Request Options
 
 Every SDK method accepts optional request options as its last argument.
 
 ```ts
+// Override timeout, abort signal, and headers for one request.
 const controller = new AbortController();
 
 await gum.sessions.getContext(
@@ -324,11 +375,12 @@ await gum.sessions.getContext(
 | `signal` | `AbortSignal` | External abort signal. |
 | `headers` | `HeadersInit` | Additional request headers. |
 
-## Response Shape
+### Response Shape
 
 Resource methods return the Gum response envelope:
 
 ```ts
+// Resource methods return this generic Gum response envelope.
 type GumEnvelope<T = unknown> = {
   data?: T;
   success?: boolean;
@@ -346,7 +398,7 @@ This is a breaking change from earlier 0.x versions where
 `gum.sessions.fromId(sessionId)` also returns a `Session`, using a synthetic
 `rawResponse` shaped as `{ data: { session_id: sessionId } }`.
 
-## Error Handling
+### Error Handling
 
 ```ts
 import {
@@ -355,6 +407,7 @@ import {
   GumTimeoutError,
 } from "@steamory-agent-kit/gum";
 
+// Handle SDK error types explicitly.
 try {
   await gum.sessions.create({ user_id: "user_123", title: "Demo session" });
 } catch (error) {
@@ -376,12 +429,13 @@ try {
 | `GumConnectionError` | The underlying fetch request fails before a response is received. |
 | `GumTimeoutError` | A request is aborted by timeout or an `AbortSignal`. Extends `GumConnectionError`. |
 
-## TypeScript
+### TypeScript
 
 The package ships generated type declarations. Public types are exported from
 the package root:
 
 ```ts
+// Import public SDK TypeScript types from the package root.
 import type {
   ActionLogInput,
   GumClientOptions,
@@ -394,9 +448,14 @@ import type {
 
 Session public types use the same naming as the `gum.sessions` resource group.
 
-## Development
+---
+
+## Project
+
+### Development
 
 ```sh
+# Install dependencies, verify types, run tests, and build the package.
 npm install
 npm run typecheck
 npm test
@@ -404,7 +463,7 @@ npm run test:coverage
 npm run build
 ```
 
-## Publishing
+### Publishing
 
 The repository includes a `.gitlab-ci.yml` pipeline for verifying, building, and
 publishing this SDK to npm.
@@ -423,6 +482,7 @@ GitLab requirements:
 Pipeline flow:
 
 ```sh
+# Verify and publish the package from CI.
 npm ci
 npm run typecheck
 npm test
@@ -436,17 +496,18 @@ default branch. Automatic tag publishing requires an `NPM_TOKEN` that can publis
 without an interactive OTP prompt. Before publishing, update the `version` in
 `package.json`. npm does not allow publishing the same package version twice.
 
-## Contributing
+### Contributing
 
 Issues and pull requests are welcome. For code changes, please run the local
 checks before opening a pull request:
 
 ```sh
+# Run the core local checks before opening a pull request.
 npm run typecheck
 npm test
 npm run build
 ```
 
-## License
+### License
 
 MIT
