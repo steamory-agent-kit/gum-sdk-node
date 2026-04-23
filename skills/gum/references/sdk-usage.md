@@ -8,7 +8,7 @@ Use this reference when implementing or reviewing `@steamory-agent-kit/gum` inte
 - [Client Setup](#client-setup)
 - [Sessions](#sessions)
 - [Messages](#messages)
-- [Context Recall](#context-recall)
+- [Memory Recall](#memory-recall)
 - [User Actions](#user-actions)
 - [Request Options](#request-options)
 - [Response Shape](#response-shape)
@@ -76,9 +76,10 @@ Create a Session for a new conversation:
 ```ts
 const session = await gum.sessions.create({
   user_id: "user_123",
-  title: "Support session",
+  title: "Order delivery support",
   metadata: {
-    source: "node",
+    source: "support-api",
+    channel: "web-chat",
     locale: "en-US",
   },
 });
@@ -104,7 +105,8 @@ Add one message:
 ```ts
 await session.addMessage({
   role: "user",
-  content: "I want to check my order",
+  content:
+    "My order ORD-2026-0418 was promised for today, but the tracking page still shows it has not left the warehouse.",
 });
 ```
 
@@ -114,11 +116,13 @@ Add multiple messages:
 await session.addMessages([
   {
     role: "user",
-    content: "Hello",
+    content:
+      "Please keep the delivery address as my office address. If it cannot arrive before Friday, I need to change it to my home address.",
   },
   {
     role: "assistant",
-    content: "Hi, how can I help?",
+    content:
+      "I noted the address preference and escalation rule. The warehouse has upgraded the shipment to priority dispatch.",
   },
 ]);
 ```
@@ -130,7 +134,8 @@ await gum.sessions.addMessages("session_123", {
   messages: [
     {
       role: "user",
-      content: "Continue the previous topic",
+      content:
+        "Continue the ORD-2026-0418 delivery issue and check whether the address change is still needed.",
       metadata: {
         channel: "chat",
       },
@@ -157,23 +162,23 @@ interface Message {
 
 The SDK serializes `Date` values to ISO strings and removes `undefined` values from request bodies.
 
-## Context Recall
+## Memory Recall
 
-Retrieve context with query parameters:
+Retrieve memory with query parameters:
 
 ```ts
-const context = await session.getContext({
+const memory = await session.getMemory({
   query: "order preferences",
   details: true,
 });
 
-console.log(context.data);
+console.log(memory.data);
 ```
 
 Use resource API form when only the Session id is available:
 
 ```ts
-const context = await gum.sessions.getContext("session_123", {
+const memory = await gum.sessions.getMemory("session_123", {
   query: "preferences",
   details: true,
 });
@@ -182,7 +187,7 @@ const context = await gum.sessions.getContext("session_123", {
 When `recall_config` is omitted, the SDK calls the GET context endpoint. When `recall_config` is present, the SDK calls the POST context endpoint and sends the config in the JSON body.
 
 ```ts
-const context = await session.getContext({
+const memory = await session.getMemory({
   query: "order preferences",
   details: true,
   recall_config: {
@@ -267,9 +272,9 @@ Every SDK method accepts optional request options as the last argument:
 ```ts
 const controller = new AbortController();
 
-await gum.sessions.getContext(
+await gum.sessions.getMemory(
   "session_123",
-  { query: "order" },
+  { query: "delayed delivery address change for order ORD-2026-0418" },
   {
     timeoutMs: 5_000,
     signal: controller.signal,
@@ -310,12 +315,13 @@ import {
 try {
   const session = await gum.sessions.create({
     user_id: "user_123",
-    title: "Demo session",
+    title: "Order delivery support",
   });
 
   await session.addMessage({
     role: "user",
-    content: "Hello",
+    content:
+      "My order ORD-2026-0418 was promised for today, but the tracking page still shows it has not left the warehouse.",
   });
 } catch (error) {
   if (error instanceof GumApiError) {

@@ -2,7 +2,7 @@ import { describe, expectTypeOf, it } from "vitest";
 import { GumClient, Session } from "../src";
 import type {
   CreateActionResponse,
-  GetSessionContextParams,
+  GetSessionMemoryParams,
   RecallConfig,
   SessionCreateRequest,
 } from "../src";
@@ -27,11 +27,14 @@ describe("public API", () => {
     expectTypeOf(client).not.toHaveProperty("threads");
     expectTypeOf(client.sessions.create).returns.resolves.toEqualTypeOf<Session>();
     expectTypeOf(client.sessions.fromId).returns.toEqualTypeOf<Session>();
+    expectTypeOf(client.sessions).toHaveProperty("getMemory");
+    expectTypeOf(client.sessions).not.toHaveProperty("getContext");
     expectTypeOf<Session>().toHaveProperty("id").toEqualTypeOf<string>();
     expectTypeOf<Session>().toHaveProperty("rawResponse");
     expectTypeOf<Session>().toHaveProperty("addMessage");
     expectTypeOf<Session>().toHaveProperty("addMessages");
-    expectTypeOf<Session>().toHaveProperty("getContext");
+    expectTypeOf<Session>().toHaveProperty("getMemory");
+    expectTypeOf<Session>().not.toHaveProperty("getContext");
   });
 
   it("matches documented request and response shapes", () => {
@@ -49,14 +52,14 @@ describe("public API", () => {
       query_router: "single_hop_parallel",
       enable_long_term_recall: false,
     };
-    const contextParams: GetSessionContextParams = {
+    const memoryParams: GetSessionMemoryParams = {
       query: "preferences",
       recall_config: recallConfig,
     };
 
     expectTypeOf(createSessionRequest.user_id).toEqualTypeOf<string>();
     expectTypeOf(createActionResponse).toEqualTypeOf<CreateActionResponse>();
-    expectTypeOf(contextParams.recall_config).toEqualTypeOf<RecallConfig | null | undefined>();
+    expectTypeOf(memoryParams.recall_config).toEqualTypeOf<RecallConfig | null | undefined>();
 
     if (false) {
       // @ts-expect-error user_id is required by the current Gum API docs.

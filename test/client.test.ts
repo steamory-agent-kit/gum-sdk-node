@@ -215,7 +215,7 @@ describe("GumClient", () => {
     );
   });
 
-  it("gets context through a Session object", async () => {
+  it("gets memory through a Session object", async () => {
     const fetch = createJsonFetchSequence(
       { data: { session_id: "session_123" } },
       { data: { messages: [] } },
@@ -224,7 +224,7 @@ describe("GumClient", () => {
     const session = await client.sessions.create({ user_id: "user_123" });
 
     await expect(
-      session.getContext({
+      session.getMemory({
         query: "订单",
         details: true,
       }),
@@ -236,7 +236,7 @@ describe("GumClient", () => {
     );
   });
 
-  it("gets context through a Session object with recall config using POST", async () => {
+  it("gets memory through a Session object with recall config using POST", async () => {
     const fetch = createJsonFetchSequence(
       { data: { session_id: "session_123" } },
       { data: { messages: [] } },
@@ -245,7 +245,7 @@ describe("GumClient", () => {
     const session = await client.sessions.create({ user_id: "user_123" });
 
     await expect(
-      session.getContext({
+      session.getMemory({
         query: "订单",
         details: true,
         recall_config: {
@@ -318,11 +318,11 @@ describe("GumClient", () => {
     );
   });
 
-  it("gets Session context with query params", async () => {
+  it("gets Session memory with query params", async () => {
     const fetch = createJsonFetch({ data: { messages: [] } });
     const client = new GumClient({ apiKey: "test-key", fetch });
 
-    await client.sessions.getContext("session_123", {
+    await client.sessions.getMemory("session_123", {
       query: "订单",
       details: true,
     });
@@ -333,11 +333,11 @@ describe("GumClient", () => {
     );
   });
 
-  it("gets Session context with recall config using POST", async () => {
+  it("gets Session memory with recall config using POST", async () => {
     const fetch = createJsonFetch({ data: { messages: [] } });
     const client = new GumClient({ apiKey: "test-key", fetch });
 
-    await client.sessions.getContext("session_123", {
+    await client.sessions.getMemory("session_123", {
       query: "订单",
       details: true,
       recall_config: {
@@ -360,11 +360,11 @@ describe("GumClient", () => {
     );
   });
 
-  it("omits undefined Session context query params", async () => {
+  it("omits undefined Session memory query params", async () => {
     const fetch = createJsonFetch({ data: { messages: [] } });
     const client = new GumClient({ apiKey: "test-key", fetch });
 
-    await client.sessions.getContext("session_123");
+    await client.sessions.getMemory("session_123");
 
     expect(fetch).toHaveBeenCalledWith(
       "https://gum.asix.inc/api/sessions/session_123/context",

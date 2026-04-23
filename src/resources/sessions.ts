@@ -3,12 +3,12 @@ import type {
   AddMessagesRequest,
   AddMessagesResponse,
   CreateSessionResponse,
-  GetSessionContextParams,
+  GetSessionMemoryParams,
   GumEnvelope,
   Message,
   RecallConfig,
   RequestOptions,
-  SessionContext,
+  SessionMemory,
   SessionCreateRequest,
 } from "../types";
 import { buildQuery } from "../utils/query";
@@ -34,11 +34,11 @@ export class Session {
     return this.sessions.addMessages(this.id, input, options);
   }
 
-  getContext(
-    params: GetSessionContextParams = {},
+  getMemory(
+    params: GetSessionMemoryParams = {},
     options?: RequestOptions,
-  ): Promise<GumEnvelope<SessionContext>> {
-    return this.sessions.getContext(this.id, params, options);
+  ): Promise<GumEnvelope<SessionMemory>> {
+    return this.sessions.getMemory(this.id, params, options);
   }
 }
 
@@ -83,11 +83,11 @@ export class SessionsResource {
     );
   }
 
-  getContext(
+  getMemory(
     sessionId: string,
-    params: GetSessionContextParams = {},
+    params: GetSessionMemoryParams = {},
     options?: RequestOptions,
-  ): Promise<GumEnvelope<SessionContext>> {
+  ): Promise<GumEnvelope<SessionMemory>> {
     const { recall_config: recallConfig } = params;
     const query = buildQuery({
       query: params.query,
@@ -98,7 +98,7 @@ export class SessionsResource {
       return this.client.request(
         "POST",
         `/api/sessions/${encodeURIComponent(sessionId)}/context${query}`,
-        buildSessionContextRequest(recallConfig),
+        buildSessionMemoryRequest(recallConfig),
         options,
       );
     }
@@ -112,7 +112,7 @@ export class SessionsResource {
   }
 }
 
-function buildSessionContextRequest(recallConfig: RecallConfig | null): {
+function buildSessionMemoryRequest(recallConfig: RecallConfig | null): {
   recall_config: RecallConfig | null;
 } {
   return {

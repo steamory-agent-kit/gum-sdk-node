@@ -28,55 +28,134 @@ npm install @steamory-agent-kit/gum
 ```ts
 import { GumClient } from "@steamory-agent-kit/gum";
 
-const apiKey = process.env.GUM_API_KEY;
-
-if (!apiKey) {
-  throw new Error("Missing GUM_API_KEY");
-}
-
-const gum = new GumClient({ apiKey });
+const gum = new GumClient({
+  apiKey: process.env.GUM_API_KEY!,
+});
 
 const session = await gum.sessions.create({
   user_id: "user_123",
-  title: "Support session",
-  metadata: {
-    source: "node",
-  },
-});
-
-await session.addMessage({
-  role: "user",
-  content: "I want to check my order",
+  title: "Team scheduling session",
 });
 
 await session.addMessages([
   {
+    role: "user",
+    content:
+      "I'm setting up regular check-ins for our Europe team. Let's use Berlin as the city for that group.",
+  },
+  {
     role: "assistant",
-    content: "I can help with that.",
+    content:
+      "Got it. I will use Berlin when you mention the Europe team.",
+  },
+  {
+    role: "user",
+    content:
+      "For the Americas team, Toronto is usually the city I want to use.",
   },
 ]);
 
-const context = await session.getContext({
-  query: "order",
-  details: true,
+const memory = await session.getMemory({
+  query: "which city should be used for Europe or Americas team scheduling",
 });
 
-const restoredSession = gum.sessions.fromId("session_123");
+console.log(memory.data);
+```
 
-await restoredSession.addMessage({
-  role: "user",
-  content: "Continue this Session later",
+## Show Demo: Team Scheduling Assistant
+
+This example shows a realistic turn lifecycle for an AI scheduling assistant:
+retrieve memory before calling your model, then write the new conversation back
+after the reply. The user does not need to repeat that Europe team scheduling
+usually uses Berlin, while Americas team scheduling usually uses Toronto.
+
+```ts
+import { GumClient } from "@steamory-agent-kit/gum";
+
+const gum = new GumClient({
+  apiKey: process.env.GUM_API_KEY!,
 });
 
-await gum.userActions.create({
-  user_id: "user_123",
-  timestamp: new Date(),
-  content: "User clicked the order details page",
-  event_type: "click",
-  page: "order_detail",
+type AssistantTurnInput = {
+  userId: string;
+  sessionId?: string;
+  userContent: string;
+};
+
+async function schedulingAssistantTurn({
+  userId,
+  sessionId,
+  userContent,
+}: AssistantTurnInput) {
+  const session = sessionId
+    ? gum.sessions.fromId(sessionId)
+    : await gum.sessions.create({
+        user_id: userId,
+        title: "Team scheduling session",
+        metadata: {
+          source: "assistant-api",
+          channel: "web-chat",
+        },
+      });
+
+  // 1. Retrieve relevant memory before calling your model.
+  const memory = await session.getMemory({
+    query: userContent,
+    details: true,
+    recall_config: {
+      message_recent_limit: 12,
+      message_semantic_top_k: 6,
+      query_router: "single_hop_parallel",
+    },
+  });
+
+  const assistantReply = await callYourLLM({
+    userContent,
+    memoryContext: JSON.stringify(memory.data ?? {}),
+  });
+
+  // 2. Save the new turn after generating the reply.
+  // Run this in the background if your product needs the fastest response path.
+  void session.addMessages([
+    { role: "user", content: userContent },
+    { role: "assistant", content: assistantReply },
+  ]).catch((error) => {
+    console.error("Gum memory write failed", error);
+  });
+
+  return {
+    sessionId: session.id,
+    assistantReply,
+  };
+}
+
+async function callYourLLM(input: {
+  userContent: string;
+  memoryContext: string;
+}): Promise<string> {
+  // Replace this with OpenAI, Anthropic, Gemini, or your internal model call.
+  return [
+    "I will use the saved scheduling context before answering.",
+    `Memory context: ${input.memoryContext}`,
+    `User message: ${input.userContent}`,
+  ].join("\n");
+}
+```
+
+Example flow:
+
+```ts
+const firstTurn = await schedulingAssistantTurn({
+  userId: "user_123",
+  userContent:
+    "For recurring team check-ins, use Berlin when I mention Europe and Toronto when I mention the Americas.",
 });
 
-console.log(context.data);
+const nextTurn = await schedulingAssistantTurn({
+  userId: "user_123",
+  sessionId: firstTurn.sessionId,
+  userContent: "Can you schedule the next sync for the region we discussed?",
+});
 ```
 
 ## Configuration
@@ -128,9 +207,10 @@ created Session id and convenience methods that automatically use that id.
 ```ts
 const session = await gum.sessions.create({
   user_id: "user_123",
-  title: "Demo session",
+  title: "Team scheduling session",
   metadata: {
-    source: "node",
+    source: "assistant-api",
+    channel: "web-chat",
   },
 });
 
@@ -152,11 +232,11 @@ const session = gum.sessions.fromId("session_123");
 
 await session.addMessage({
   role: "user",
-  content: "Continue this Session later",
+  content: "Continue where we left off. If I mention a region, use the city we picked for that team.",
 });
 
-const context = await session.getContext({
-  query: "preferences",
+const memory = await session.getMemory({
+  query: "which city should be used for the user's team scheduling request",
 });
 ```
 
@@ -167,7 +247,8 @@ Adds one message to the created Session.
 ```ts
 await session.addMessage({
   role: "user",
-  content: "Hello",
+  content:
+    "For the Americas team, I usually coordinate from Toronto.",
 });
 ```
 
@@ -180,11 +261,13 @@ array or an object with a `messages` property.
 await session.addMessages([
   {
     role: "user",
-    content: "Hello",
+    content:
+      "For the Europe team check-in, keep Berlin as the city we are working from.",
   },
   {
     role: "assistant",
-    content: "Hi, how can I help?",
+    content:
+      "Understood. I will use Berlin for Europe team scheduling and Toronto for the Americas team.",
   },
 ]);
 
@@ -192,7 +275,8 @@ await session.addMessages({
   messages: [
     {
       role: "user",
-      content: "Can you remember this preference?",
+      content:
+        "That works for me: Berlin when I mention Europe, and Toronto when I mention the Americas.",
       metadata: {
         channel: "chat",
       },
@@ -201,25 +285,25 @@ await session.addMessages({
 });
 ```
 
-### `session.getContext(params?, options?)`
+### `session.getMemory(params?, options?)`
 
-Retrieves context for the created Session. Pass `query` to focus the retrieval
-and `details` to include detailed context data when the API supports it.
+Retrieves memory for the created Session. Pass `query` to focus the retrieval
+and `details` to include detailed memory data when the API supports it.
 
 ```ts
-const context = await session.getContext({
-  query: "order",
+const memory = await session.getMemory({
+  query: "which city should be used for Europe or Americas team scheduling",
   details: true,
 });
 ```
 
-Pass `recall_config` to override context recall behavior. When
+Pass `recall_config` to override memory recall behavior. When
 `recall_config` is present, the SDK uses the POST context endpoint so the
 configuration can be sent as a JSON body.
 
 ```ts
-const context = await session.getContext({
-  query: "order",
+const memory = await session.getMemory({
+  query: "which city should be used for the user's team scheduling request",
   details: true,
   recall_config: {
     message_recent_limit: 20,
@@ -240,11 +324,13 @@ property.
 await gum.sessions.addMessages("session_123", [
   {
     role: "user",
-    content: "Hello",
+    content:
+      "Use the Europe city we discussed and draft the agenda for the next team check-in.",
   },
   {
     role: "assistant",
-    content: "Hi, how can I help?",
+    content:
+      "I will use Berlin for that check-in and keep the agenda focused on project updates.",
   },
 ]);
 
@@ -252,7 +338,8 @@ await gum.sessions.addMessages("session_123", {
   messages: [
     {
       role: "user",
-      content: "Can you remember this preference?",
+      content:
+        "That works for me: Berlin when I mention Europe, and Toronto when I mention the Americas.",
       metadata: {
         channel: "chat",
       },
@@ -261,20 +348,20 @@ await gum.sessions.addMessages("session_123", {
 });
 ```
 
-### `gum.sessions.getContext(sessionId, params?, options?)`
+### `gum.sessions.getMemory(sessionId, params?, options?)`
 
-Lower-level API for retrieving context when you already have a Session id. Pass
-`query` to focus the retrieval and `details` to include detailed context data
+Lower-level API for retrieving memory when you already have a Session id. Pass
+`query` to focus the retrieval and `details` to include detailed memory data
 when the API supports it.
 
 ```ts
-const context = await gum.sessions.getContext("session_123", {
-  query: "order",
+const memory = await gum.sessions.getMemory("session_123", {
+  query: "which city should be used for Europe or Americas team scheduling",
   details: true,
 });
 ```
 
-As with `session.getContext`, this lower-level method automatically uses the
+As with `session.getMemory`, this lower-level method automatically uses the
 POST context endpoint when `recall_config` is present.
 
 ### `gum.userActions.create(input, options?)`
@@ -285,15 +372,16 @@ Creates one user action log.
 await gum.userActions.create({
   user_id: "user_123",
   timestamp: new Date(),
-  content: "User searched for nearby restaurants",
+  content: "User opened the Europe team scheduling page",
   session_id: "session_123",
-  event_type: "search",
-  page: "home",
+  event_type: "page_view",
+  page: "team_scheduling",
   anchors: {
-    order_id: "order_123",
+    region: "Europe",
+    city: "Berlin",
   },
   metadata: {
-    source: "backend",
+    source: "assistant-api",
   },
 });
 ```
@@ -305,9 +393,9 @@ Every SDK method accepts optional request options as its last argument.
 ```ts
 const controller = new AbortController();
 
-await gum.sessions.getContext(
+await gum.sessions.getMemory(
   "session_123",
-  { query: "order" },
+  { query: "which city should be used for the user's team scheduling request" },
   {
     timeoutMs: 5_000,
     signal: controller.signal,
@@ -356,7 +444,7 @@ import {
 } from "@steamory-agent-kit/gum";
 
 try {
-  await gum.sessions.create({ user_id: "user_123", title: "Demo session" });
+  await gum.sessions.create({ user_id: "user_123", title: "Team scheduling session" });
 } catch (error) {
   if (error instanceof GumApiError) {
     console.error(error.status, error.detail, error.body);
@@ -388,7 +476,7 @@ import type {
   Message,
   RecallConfig,
   Session,
-  SessionContext,
+  SessionMemory,
 } from "@steamory-agent-kit/gum";
 ```
 

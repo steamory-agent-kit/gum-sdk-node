@@ -65,11 +65,14 @@ export interface RecallConfig {
   enable_long_term_recall?: boolean;
 }
 
-export interface GetSessionContextParams {
+export interface GetSessionMemoryParams {
   query?: string;
   details?: boolean;
   recall_config?: RecallConfig | null;
 }
+
+/** @deprecated Use GetSessionMemoryParams instead. */
+export type GetSessionContextParams = GetSessionMemoryParams;
 
 export interface CreateSessionResponse {
   session_id: string;
@@ -80,12 +83,15 @@ export interface AddMessagesResponse {
   [key: string]: unknown;
 }
 
-export interface SessionContext {
+export interface SessionMemory {
   messages?: unknown[];
   observations?: unknown[];
   propositions?: unknown[];
   [key: string]: unknown;
 }
+
+/** @deprecated Use SessionMemory instead. */
+export type SessionContext = SessionMemory;
 
 export type AnchorSet = Record<string, string>;
 

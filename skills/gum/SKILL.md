@@ -1,6 +1,6 @@
 ---
 name: gum
-description: "Use when AI Coding needs to integrate or modify @steamory-agent-kit/gum usage in a Node.js backend. GUM is a Memory service for agents and applications: it stores conversation messages and user actions, then retrieves contextual memory for later turns. Includes creating Gum sessions, appending conversation messages, retrieving session context or memory, writing user action events, configuring GumClient with GUM_API_KEY, host, timeout, or custom fetch, and handling Gum SDK errors. Do not use for browser-only frontend code that would expose Gum API keys."
+description: "Use when AI Coding needs to integrate or modify @steamory-agent-kit/gum usage in a Node.js backend. GUM is a Memory service for agents and applications: it stores conversation messages and user actions, then retrieves contextual memory for later turns. Includes creating Gum sessions, appending conversation messages, retrieving session memory, writing user action events, configuring GumClient with GUM_API_KEY, host, timeout, or custom fetch, and handling Gum SDK errors. Do not use for browser-only frontend code that would expose Gum API keys."
 ---
 
 # Gum SDK
@@ -17,7 +17,7 @@ Use `@steamory-agent-kit/gum` when a Node.js backend needs Gum memory sessions, 
 4. Initialize one reusable `GumClient` with `apiKey`, and only override `host`, `timeoutMs`, or `fetch` when the project needs it.
 5. Create a new Session for a new user conversation, or restore one with `gum.sessions.fromId(sessionId)` when the app already stored the Session id.
 6. Append user and assistant messages to the Session.
-7. Retrieve Session context before answering when memory or prior behavior should influence the response.
+7. Retrieve Session memory before answering when memory or prior behavior should influence the response.
 8. Write user actions for meaningful product behavior that should become searchable memory.
 9. Handle `GumApiError`, `GumConnectionError`, and `GumTimeoutError` explicitly in backend boundaries.
 
@@ -46,12 +46,12 @@ Use `@steamory-agent-kit/gum` when a Node.js backend needs Gum memory sessions, 
 - Prefer `session.addMessage()` or `session.addMessages()` over raw `gum.request()` calls.
 - Include useful `metadata` such as channel, locale, tenant, or source when it helps later retrieval.
 
-## Context Recall
+## Memory Recall
 
-- Use `session.getContext({ query, details })` to retrieve relevant memory for the current turn.
+- Use `session.getMemory({ query, details })` to retrieve relevant memory for the current turn.
 - Pass a focused natural-language `query` instead of broad keywords when possible.
 - Add `recall_config` only when the app has a clear retrieval requirement, such as increasing recent message count or disabling long-term recall.
-- Remember that the SDK uses GET for context without `recall_config` and POST when `recall_config` is present.
+- Remember that the SDK uses GET for memory retrieval without `recall_config` and POST when `recall_config` is present.
 
 ## User Actions
 

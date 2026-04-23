@@ -14,6 +14,7 @@ export type {
   CreateSessionResponse,
   CreateActionResponse,
   GetSessionContextParams,
+  GetSessionMemoryParams,
   GumClientOptions,
   GumEnvelope,
   Message,
@@ -22,5 +23,6 @@ export type {
   RecallConfig,
   RequestOptions,
   SessionContext,
+  SessionMemory,
   SessionCreateRequest,
 } from "./types";
