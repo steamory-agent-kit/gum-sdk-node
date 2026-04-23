@@ -47,15 +47,18 @@ npm install @steamory-agent-kit/gum
 ```ts
 import { GumClient } from "@steamory-agent-kit/gum";
 
+// Create a Gum client with your server-side API key.
 const gum = new GumClient({
   apiKey: process.env.GUM_API_KEY!,
 });
 
+// Start a memory session for one user conversation.
 const session = await gum.sessions.create({
   user_id: "user_123",
   title: "Team scheduling session",
 });
 
+// Add the conversation turns that Gum should use as memory.
 await session.addMessages([
   {
     role: "user",
@@ -74,6 +77,7 @@ await session.addMessages([
   },
 ]);
 
+// Retrieve relevant memory before the next assistant response.
 const memory = await session.getMemory({
   query: "which city should be used for Europe or Americas team scheduling",
 });
