@@ -100,7 +100,7 @@ const gum = new GumClient({
 
 // Create this once for a new conversation, then store session.id.
 const session = await gum.sessions.create({
-  user_id: "user_123",
+  user_id: "user_id_xxxxxx",
   title: "Team scheduling session",
 });
 
