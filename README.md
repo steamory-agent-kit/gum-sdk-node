@@ -54,8 +54,7 @@ const gum = new GumClient({
 
 // Start a memory session for one user conversation.
 const session = await gum.sessions.create({
-  user_id: "user_123",
-  title: "Team scheduling session",
+  user_id: "user_id_xxxxx",
 });
 
 // Add the conversation turns that Gum should use as memory.
@@ -99,46 +98,31 @@ const gum = new GumClient({
   apiKey: process.env.GUM_API_KEY!,
 });
 
-type AssistantTurnInput = {
-  userId: string;
-  sessionId?: string;
-  userContent: string;
-};
+// Create this once for a new conversation, then store session.id.
+const session = await gum.sessions.create({
+  user_id: "user_123",
+  title: "Team scheduling session",
+});
 
-async function schedulingAssistantTurn({
-  userId,
-  sessionId,
-  userContent,
-}: AssistantTurnInput) {
-  const session = sessionId
-    ? gum.sessions.fromId(sessionId)
-    : await gum.sessions.create({
-        user_id: userId,
-        title: "Team scheduling session",
-        metadata: {
-          source: "assistant-api",
-          channel: "web-chat",
-        },
-      });
-
-  // 1. Retrieve relevant memory before calling your model.
+async function schedulingAssistantTurn(userContent: string) {
+  // 1. SEARCH: retrieve relevant memory before calling your model.
   const memory = await session.getMemory({
     query: userContent,
     details: true,
-    recall_config: {
-      message_recent_limit: 12,
-      message_semantic_top_k: 6,
-      query_router: "single_hop_parallel",
-    },
   });
 
-  const assistantReply = await callYourLLM({
-    userContent,
-    memoryContext: JSON.stringify(memory.data ?? {}),
-  });
+  // 2. PROMPT: inject the recalled memory into your model context.
+  const systemPrompt = `
+You are a team scheduling assistant.
+Known user preferences:
+${JSON.stringify(memory.data ?? {}, null, 2)}
+Use these preferences naturally when answering.
+`;
 
-  // 2. Save the new turn after generating the reply.
-  // Run this in the background if your product needs the fastest response path.
+  // 3. LLM: replace this with OpenAI, Anthropic, Gemini, or your own model call.
+  const assistantReply = await callYourLLM(systemPrompt, userContent);
+
+  // 4. ADD: write the new turn back to Gum without blocking the response.
   void session.addMessages([
     { role: "user", content: userContent },
     { role: "assistant", content: assistantReply },
@@ -146,39 +130,20 @@ async function schedulingAssistantTurn({
     console.error("Gum memory write failed", error);
   });
 
-  return {
-    sessionId: session.id,
-    assistantReply,
-  };
-}
-
-async function callYourLLM(input: {
-  userContent: string;
-  memoryContext: string;
-}): Promise<string> {
-  // Replace this with OpenAI, Anthropic, Gemini, or your internal model call.
-  return [
-    "I will use the saved scheduling context before answering.",
-    `Memory context: ${input.memoryContext}`,
-    `User message: ${input.userContent}`,
-  ].join("\n");
+  return assistantReply;
 }
 ```
 
 Example flow:
 
 ```ts
-const firstTurn = await schedulingAssistantTurn({
-  userId: "user_123",
-  userContent:
-    "For recurring team check-ins, use Berlin when I mention Europe and Toronto when I mention the Americas.",
-});
+await schedulingAssistantTurn(
+  "For recurring team check-ins, use Berlin when I mention Europe and Toronto when I mention the Americas.",
+);
 
-const nextTurn = await schedulingAssistantTurn({
-  userId: "user_123",
-  sessionId: firstTurn.sessionId,
-  userContent: "Can you schedule the next sync for the region we discussed?",
-});
+await schedulingAssistantTurn(
+  "Can you schedule the next sync for the region we discussed?",
+);
 ```
 
 ### Configuration
