@@ -26,9 +26,12 @@ export interface GumEnvelope<T = unknown> {
 
 export interface SessionCreateRequest {
   user_id: string;
+  session_id: string;
   title?: string | null;
   metadata?: Record<string, unknown> | null;
 }
+
+export type SessionInitInput = string | SessionCreateRequest;
 
 export type ProcessingStatus = "pending" | "chunked" | "processed" | "failed";
 

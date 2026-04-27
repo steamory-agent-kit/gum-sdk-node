@@ -62,7 +62,11 @@ describe("GumClient", () => {
     const fetch = createJsonFetch({ data: { session_id: "session_123" } });
     const client = new GumClient({ apiKey: "test-key", fetch });
 
-    await client.sessions.create({ user_id: "user_123", title: "demo" });
+    await client.sessions.init({
+      user_id: "user_123",
+      session_id: "session_123",
+      title: "demo",
+    });
 
     expect(headersFor(fetch).Authorization).toBe("Api-Key test-key");
   });
@@ -71,17 +75,22 @@ describe("GumClient", () => {
     const fetch = createJsonFetch({ data: { session_id: "session_123" } });
     const client = new GumClient({ apiKey: "Api-Key test-key", fetch });
 
-    await client.sessions.create({ user_id: "user_123", title: "demo" });
+    await client.sessions.init({
+      user_id: "user_123",
+      session_id: "session_123",
+      title: "demo",
+    });
 
     expect(headersFor(fetch).Authorization).toBe("Api-Key test-key");
   });
 
-  it("creates a Session", async () => {
+  it("initializes a new Session", async () => {
     const fetch = createJsonFetch({ data: { session_id: "session_123" } });
     const client = new GumClient({ apiKey: "test-key", fetch });
 
-    const session = await client.sessions.create({
+    const session = await client.sessions.init({
       user_id: "user_123",
+      session_id: "session_123",
       title: "demo",
       metadata: { source: "test" },
     });
@@ -92,6 +101,7 @@ describe("GumClient", () => {
         method: "POST",
         body: JSON.stringify({
           user_id: "user_123",
+          session_id: "session_123",
           title: "demo",
           metadata: { source: "test" },
         }),
@@ -102,36 +112,42 @@ describe("GumClient", () => {
     expect(session.rawResponse).toEqual({ data: { session_id: "session_123" } });
   });
 
-  it("creates a Session with the required user id", async () => {
+  it("initializes a new Session with the required user and Session ids", async () => {
     const fetch = createJsonFetch({ data: { session_id: "session_123" } });
     const client = new GumClient({ apiKey: "test-key", fetch });
 
-    const session = await client.sessions.create({ user_id: "user_123" });
+    const session = await client.sessions.init({
+      user_id: "user_123",
+      session_id: "session_123",
+    });
 
     expect(fetch).toHaveBeenCalledWith(
       "https://gum.asix.inc/api/sessions",
       expect.objectContaining({
         method: "POST",
-        body: JSON.stringify({ user_id: "user_123" }),
+        body: JSON.stringify({ user_id: "user_123", session_id: "session_123" }),
       }),
     );
     expect(session.id).toBe("session_123");
   });
 
-  it("throws a clear error when create does not return a Session id", async () => {
+  it("throws a clear error when init does not return a Session id", async () => {
     const fetch = createJsonFetch({ data: {} });
     const client = new GumClient({ apiKey: "test-key", fetch });
 
-    await expect(client.sessions.create({ user_id: "user_123" })).rejects.toThrow(
-      "Gum API did not return data.session_id",
-    );
+    await expect(
+      client.sessions.init({
+        user_id: "user_123",
+        session_id: "session_123",
+      }),
+    ).rejects.toThrow("Gum API did not return data.session_id");
   });
 
-  it("restores a Session object from an existing Session id without a request", () => {
+  it("initializes a Session object from an existing Session id without a request", async () => {
     const fetch = createJsonFetch({ data: { accepted: true } });
     const client = new GumClient({ apiKey: "test-key", fetch });
 
-    const session = client.sessions.fromId("session_123");
+    const session = await client.sessions.init("session_123");
 
     expect(session).toBeInstanceOf(Session);
     expect(session.id).toBe("session_123");
@@ -142,7 +158,7 @@ describe("GumClient", () => {
   it("uses a restored Session object to add messages", async () => {
     const fetch = createJsonFetch({ data: { accepted: true } });
     const client = new GumClient({ apiKey: "test-key", fetch });
-    const session = client.sessions.fromId("session/123");
+    const session = await client.sessions.init("session/123");
 
     await expect(
       session.addMessage({
@@ -168,7 +184,10 @@ describe("GumClient", () => {
       { data: { accepted: true } },
     );
     const client = new GumClient({ apiKey: "test-key", fetch });
-    const session = await client.sessions.create({ user_id: "user_123" });
+    const session = await client.sessions.init({
+      user_id: "user_123",
+      session_id: "session/123",
+    });
 
     await expect(
       session.addMessage({
@@ -194,7 +213,10 @@ describe("GumClient", () => {
       { data: { accepted: true } },
     );
     const client = new GumClient({ apiKey: "test-key", fetch });
-    const session = await client.sessions.create({ user_id: "user_123" });
+    const session = await client.sessions.init({
+      user_id: "user_123",
+      session_id: "session_123",
+    });
 
     await expect(
       session.addMessages({
@@ -221,7 +243,10 @@ describe("GumClient", () => {
       { data: { messages: [] } },
     );
     const client = new GumClient({ apiKey: "test-key", fetch });
-    const session = await client.sessions.create({ user_id: "user_123" });
+    const session = await client.sessions.init({
+      user_id: "user_123",
+      session_id: "session_123",
+    });
 
     await expect(
       session.getMemory({
@@ -242,7 +267,10 @@ describe("GumClient", () => {
       { data: { messages: [] } },
     );
     const client = new GumClient({ apiKey: "test-key", fetch });
-    const session = await client.sessions.create({ user_id: "user_123" });
+    const session = await client.sessions.init({
+      user_id: "user_123",
+      session_id: "session_123",
+    });
 
     await expect(
       session.getMemory({

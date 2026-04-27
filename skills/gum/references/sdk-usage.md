@@ -71,11 +71,12 @@ Keep the runtime check in application code so misconfigured deployments fail wit
 
 ## Sessions
 
-Create a Session for a new conversation:
+Initialize a Session for a new conversation:
 
 ```ts
-const session = await gum.sessions.create({
+const session = await gum.sessions.init({
   user_id: "user_123",
+  session_id: "session_123",
   title: "Order delivery support",
   metadata: {
     source: "support-api",
@@ -88,15 +89,15 @@ console.log(session.id);
 console.log(session.rawResponse);
 ```
 
-`user_id` is required. Store `session.id` if the application needs to continue the same Gum Session later.
+`user_id` and `session_id` are required. Store `session.id` if the application needs to continue the same Gum Session later.
 
 Restore a local Session object when the id is already stored:
 
 ```ts
-const session = gum.sessions.fromId("session_123");
+const session = await gum.sessions.init("session_123");
 ```
 
-`fromId()` does not make a network request. It only recreates the object-style API.
+The string form does not make a network request. It only recreates the object-style API.
 
 ## Messages
 
@@ -267,7 +268,7 @@ Prefer `content` like `User searched for nearby restaurants` or `User clicked th
 
 ## Request Options
 
-Every SDK method accepts optional request options as the last argument:
+SDK methods that make HTTP requests accept optional request options as the last argument. `gum.sessions.init(sessionId)` is the exception: it only restores a local Session object and does not accept request options.
 
 ```ts
 const controller = new AbortController();
@@ -301,7 +302,7 @@ interface GumEnvelope<T = unknown> {
 }
 ```
 
-`gum.sessions.create()` returns a `Session` object, not the envelope directly. Read the created Session id from `session.id` and the original create response from `session.rawResponse`.
+`gum.sessions.init()` returns a `Session` object, not the envelope directly. Read the Session id from `session.id` and the original create response from `session.rawResponse` when a new Session is created.
 
 ## Error Handling
 
@@ -313,8 +314,9 @@ import {
 } from "@steamory-agent-kit/gum";
 
 try {
-  const session = await gum.sessions.create({
+  const session = await gum.sessions.init({
     user_id: "user_123",
+    session_id: "session_123",
     title: "Order delivery support",
   });
 
@@ -367,8 +369,9 @@ const gum = new GumClient({
   fetch,
 });
 
-const session = await gum.sessions.create({
+const session = await gum.sessions.init({
   user_id: "user_123",
+  session_id: "session_123",
 });
 ```
 

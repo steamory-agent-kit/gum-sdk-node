@@ -25,4 +25,5 @@ export type {
   SessionContext,
   SessionMemory,
   SessionCreateRequest,
+  SessionInitInput,
 } from "./types";
