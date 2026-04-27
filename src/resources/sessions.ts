@@ -10,6 +10,7 @@ import type {
   RequestOptions,
   SessionMemory,
   SessionCreateRequest,
+  SessionInitInput,
 } from "../types";
 import { buildQuery } from "../utils/query";
 
@@ -45,14 +46,16 @@ export class Session {
 export class SessionsResource {
   constructor(private readonly client: GumClient) {}
 
-  fromId(sessionId: string): Session {
-    return new Session(this, sessionId, { data: { session_id: sessionId } });
-  }
-
-  async create(
-    input: SessionCreateRequest,
+  init(sessionId: string): Promise<Session>;
+  init(input: SessionCreateRequest, options?: RequestOptions): Promise<Session>;
+  async init(
+    input: SessionInitInput,
     options?: RequestOptions,
   ): Promise<Session> {
+    if (typeof input === "string") {
+      return new Session(this, input, { data: { session_id: input } });
+    }
+
     const response = await this.client.request<GumEnvelope<CreateSessionResponse>>(
       "POST",
       "/api/sessions",

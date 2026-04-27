@@ -52,9 +52,10 @@ const gum = new GumClient({
   apiKey: process.env.GUM_API_KEY!,
 });
 
-// Start a memory session for one user conversation.
-const session = await gum.sessions.create({
+// Initialize a memory session for one user conversation.
+const session = await gum.sessions.init({
   user_id: "user_id_xxxxx",
+  session_id: "session_id_xxxxx",
 });
 
 // Add the conversation turns that Gum should use as memory.
@@ -98,9 +99,10 @@ const gum = new GumClient({
   apiKey: process.env.GUM_API_KEY!,
 });
 
-// Create this once for a new conversation, then store session.id.
-const session = await gum.sessions.create({
+// Initialize this once for a new conversation, then store session.id.
+const session = await gum.sessions.init({
   user_id: "user_id_xxxxxx",
+  session_id: "session_id_xxxxxx",
   title: "Team scheduling session",
 });
 
@@ -195,16 +197,19 @@ const health = await gum.health();
 
 ### Sessions
 
-#### `gum.sessions.create(input, options?)`
+#### `gum.sessions.init(input, options?)`
 
-Creates a Session and returns a `Session` object. The object exposes the
-created Session id and convenience methods that automatically use that id.
-`input.user_id` is required by the Gum API.
+Initializes a Session and returns a `Session` object. Pass a creation request
+to create a new Session through the Gum API, or pass an existing Session id to
+rebuild the local object-style API without a network request. The object exposes
+the Session id and convenience methods that automatically use that id.
+`input.user_id` and `input.session_id` are required when creating a new Session.
 
 ```ts
-// Create a Session and inspect the returned helper.
-const session = await gum.sessions.create({
+// Create a new Session and inspect the returned helper.
+const session = await gum.sessions.init({
   user_id: "user_123",
+  session_id: "session_123",
   title: "Team scheduling session",
   metadata: {
     source: "assistant-api",
@@ -219,15 +224,9 @@ console.log(session.rawResponse);
 If Gum returns a successful response without `data.session_id`, the SDK throws
 `Error: Gum API did not return data.session_id`.
 
-#### `gum.sessions.fromId(sessionId)`
-
-Creates a local `Session` object from an existing Session id without making a
-network request. Use this when the Session id is already stored in your
-application and you want the object-style API again.
-
 ```ts
 // Rebuild a Session helper from an existing Session id.
-const session = gum.sessions.fromId("session_123");
+const session = await gum.sessions.init("session_123");
 
 await session.addMessage({
   role: "user",
@@ -439,13 +438,12 @@ type GumEnvelope<T = unknown> = {
 };
 ```
 
-For example, `gum.sessions.create()` returns
-`Promise<Session>`. The created Session id is available as `session.id`, and
-the original create response envelope is available as `session.rawResponse`.
-This is a breaking change from earlier 0.x versions where
-`gum.sessions.create()` returned `Promise<GumEnvelope<CreateSessionResponse>>`.
-`gum.sessions.fromId(sessionId)` also returns a `Session`, using a synthetic
-`rawResponse` shaped as `{ data: { session_id: sessionId } }`.
+For example, `gum.sessions.init()` returns `Promise<Session>`. The Session id
+is available as `session.id`, and `session.rawResponse` preserves the original
+create response envelope for new Sessions. When initialized from an existing id,
+`rawResponse` is synthetic and shaped as `{ data: { session_id: sessionId } }`.
+This is a breaking change from earlier 0.x versions where `gum.sessions.create()`
+and `gum.sessions.fromId()` were separate public methods.
 
 ### Error Handling
 
@@ -458,7 +456,11 @@ import {
 
 // Handle SDK error types explicitly.
 try {
-  await gum.sessions.create({ user_id: "user_123", title: "Team scheduling session" });
+  await gum.sessions.init({
+    user_id: "user_123",
+    session_id: "session_123",
+    title: "Team scheduling session",
+  });
 } catch (error) {
   if (error instanceof GumApiError) {
     console.error(error.status, error.detail, error.body);

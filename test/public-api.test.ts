@@ -5,6 +5,7 @@ import type {
   GetSessionMemoryParams,
   RecallConfig,
   SessionCreateRequest,
+  SessionInitInput,
 } from "../src";
 
 describe("public API", () => {
@@ -25,8 +26,14 @@ describe("public API", () => {
 
     expectTypeOf(client).toHaveProperty("sessions");
     expectTypeOf(client).not.toHaveProperty("threads");
-    expectTypeOf(client.sessions.create).returns.resolves.toEqualTypeOf<Session>();
-    expectTypeOf(client.sessions.fromId).returns.toEqualTypeOf<Session>();
+    expectTypeOf(client.sessions.init).toBeCallableWith("session_123");
+    expectTypeOf(client.sessions.init).toBeCallableWith({
+      user_id: "user_123",
+      session_id: "session_123",
+    });
+    expectTypeOf(client.sessions.init).returns.resolves.toEqualTypeOf<Session>();
+    expectTypeOf(client.sessions).not.toHaveProperty("create");
+    expectTypeOf(client.sessions).not.toHaveProperty("fromId");
     expectTypeOf(client.sessions).toHaveProperty("getMemory");
     expectTypeOf(client.sessions).not.toHaveProperty("getContext");
     expectTypeOf<Session>().toHaveProperty("id").toEqualTypeOf<string>();
@@ -45,6 +52,7 @@ describe("public API", () => {
 
     const createSessionRequest: SessionCreateRequest = {
       user_id: "user_123",
+      session_id: "session_123",
     };
     const createActionResponse: CreateActionResponse = {};
     const recallConfig: RecallConfig = {
@@ -58,15 +66,30 @@ describe("public API", () => {
     };
 
     expectTypeOf(createSessionRequest.user_id).toEqualTypeOf<string>();
+    expectTypeOf<SessionInitInput>().toEqualTypeOf<string | SessionCreateRequest>();
+    expectTypeOf<string>().toMatchTypeOf<SessionInitInput>();
+    expectTypeOf<SessionCreateRequest>().toMatchTypeOf<SessionInitInput>();
     expectTypeOf(createActionResponse).toEqualTypeOf<CreateActionResponse>();
     expectTypeOf(memoryParams.recall_config).toEqualTypeOf<RecallConfig | null | undefined>();
 
     if (false) {
       // @ts-expect-error user_id is required by the current Gum API docs.
-      client.sessions.create({ title: "demo" });
+      client.sessions.init({ session_id: "session_123", title: "demo" });
 
-      // @ts-expect-error create requires a request body with user_id.
-      client.sessions.create();
+      // @ts-expect-error session_id is required by the current Gum API docs.
+      client.sessions.init({ user_id: "user_123", title: "demo" });
+
+      // @ts-expect-error init requires a Session id or request body with user_id.
+      client.sessions.init();
+
+      // @ts-expect-error restoring an existing Session id does not accept request options.
+      client.sessions.init("session_123", { timeoutMs: 1 });
+
+      // @ts-expect-error create is no longer part of the public Sessions API.
+      client.sessions.create({ user_id: "user_123" });
+
+      // @ts-expect-error fromId is no longer part of the public Sessions API.
+      client.sessions.fromId("session_123");
 
       const invalidRecallConfig: RecallConfig = {
         // @ts-expect-error query_router must match the documented enum.
