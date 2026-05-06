@@ -63,6 +63,7 @@ Use `@steamory-agent-kit/gum` when a Node.js backend needs Gum memory sessions, 
 ## User Actions
 
 - Use `gum.userActions.create()` for product behavior that should be available to Gum memory, such as clicks, searches, page views, and domain events.
+- Use `gum.userActions.recall()` to retrieve profile-ready memory derived from user action logs for a specific product feature query.
 - Write `content` as a readable sentence, not a terse event code.
 - Include `user_id` and `timestamp`; include `session_id` when the action belongs to a conversation.
 - Use `anchors` for business ids such as order id, project id, document id, or item id.

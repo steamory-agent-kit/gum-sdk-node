@@ -451,6 +451,53 @@ describe("GumClient", () => {
     );
   });
 
+  it("recalls user action profile memory with recall config", async () => {
+    const fetch = createJsonFetch({
+      data: {
+        formatted_context: "User prefers async status updates.",
+        items: [],
+      },
+    });
+    const client = new GumClient({ apiKey: "test-key", fetch });
+
+    await expect(
+      client.userActions.recall({
+        user_id: "user_123",
+        query: "any query",
+        recall_config: {
+          topk: 10,
+          metadata_filters: {
+            xxx: "xxx",
+            yyy: "yyy",
+          },
+        },
+      }),
+    ).resolves.toEqual({
+      data: {
+        formatted_context: "User prefers async status updates.",
+        items: [],
+      },
+    });
+
+    expect(fetch).toHaveBeenCalledWith(
+      "https://gum.asix.inc/api/user/actions/profile/recall",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          user_id: "user_123",
+          query: "any query",
+          recall_config: {
+            topk: 10,
+            metadata_filters: {
+              xxx: "xxx",
+              yyy: "yyy",
+            },
+          },
+        }),
+      }),
+    );
+  });
+
   it("supports per-request headers and timeout overrides", async () => {
     const fetch = createJsonFetch({ status: "ok" });
     const client = new GumClient({ apiKey: "test-key", fetch, timeoutMs: 1 });

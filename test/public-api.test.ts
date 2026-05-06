@@ -3,9 +3,13 @@ import { GumClient, Session } from "../src";
 import type {
   CreateActionResponse,
   GetSessionMemoryParams,
+  GumEnvelope,
   RecallConfig,
   SessionCreateRequest,
   SessionInitInput,
+  UserActionRecallConfig,
+  UserActionRecallRequest,
+  UserActionRecallResponse,
 } from "../src";
 
 describe("public API", () => {
@@ -16,6 +20,7 @@ describe("public API", () => {
     });
 
     expectTypeOf(client.userActions).not.toHaveProperty("query");
+    expectTypeOf(client.userActions).toHaveProperty("recall");
   });
 
   it("exposes Session APIs through sessions", () => {
@@ -64,6 +69,21 @@ describe("public API", () => {
       query: "preferences",
       recall_config: recallConfig,
     };
+    const userActionRecallConfig: UserActionRecallConfig = {
+      topk: 10,
+      metadata_filters: {
+        app: "console",
+      },
+    };
+    const userActionRecallRequest: UserActionRecallRequest = {
+      user_id: "user_123",
+      query: "preferences",
+      recall_config: userActionRecallConfig,
+    };
+    const userActionRecallResponse: UserActionRecallResponse = {
+      formatted_context: "User prefers concise answers.",
+      items: [],
+    };
 
     expectTypeOf(createSessionRequest.user_id).toEqualTypeOf<string>();
     expectTypeOf<SessionInitInput>().toEqualTypeOf<string | SessionCreateRequest>();
@@ -71,6 +91,13 @@ describe("public API", () => {
     expectTypeOf<SessionCreateRequest>().toMatchTypeOf<SessionInitInput>();
     expectTypeOf(createActionResponse).toEqualTypeOf<CreateActionResponse>();
     expectTypeOf(memoryParams.recall_config).toEqualTypeOf<RecallConfig | null | undefined>();
+    expectTypeOf(userActionRecallRequest.recall_config).toEqualTypeOf<
+      UserActionRecallConfig | null | undefined
+    >();
+    expectTypeOf(userActionRecallResponse).toEqualTypeOf<UserActionRecallResponse>();
+    expectTypeOf(client.userActions.recall).toBeCallableWith(userActionRecallRequest);
+    expectTypeOf(client.userActions.recall)
+      .returns.resolves.toEqualTypeOf<GumEnvelope<UserActionRecallResponse>>();
 
     if (false) {
       // @ts-expect-error user_id is required by the current Gum API docs.
@@ -97,6 +124,19 @@ describe("public API", () => {
       };
 
       void invalidRecallConfig;
+
+      const invalidUserActionRecallConfig: UserActionRecallConfig = {
+        // @ts-expect-error topk must be numeric when provided.
+        topk: "10",
+      };
+
+      // @ts-expect-error user_id is required for user action recall.
+      client.userActions.recall({ query: "preferences" });
+
+      // @ts-expect-error query is required for user action recall.
+      client.userActions.recall({ user_id: "user_123" });
+
+      void invalidUserActionRecallConfig;
     }
   });
 });

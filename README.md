@@ -392,6 +392,28 @@ await gum.userActions.create({
 });
 ```
 
+#### `gum.userActions.recall(input, options?)`
+
+Recalls profile-ready memory from user action logs.
+
+```ts
+const profileMemory = await gum.userActions.recall({
+  user_id: "user_123",
+  query: "which scheduling preferences should be remembered",
+  recall_config: {
+    topk: 10,
+    metadata_filters: {
+      source: "assistant-api",
+      page: "team_scheduling",
+    },
+  },
+});
+```
+
+Use `metadata_filters` to narrow recall to action metadata relevant to the
+current product feature. `query` is required; pass an empty string explicitly if
+the API should recall without a focused natural-language query.
+
 ---
 
 ## Runtime Contracts
@@ -494,6 +516,8 @@ import type {
   RecallConfig,
   Session,
   SessionMemory,
+  UserActionRecallRequest,
+  UserActionRecallResponse,
 } from "@steamory-agent-kit/gum";
 ```
 

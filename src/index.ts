@@ -26,4 +26,7 @@ export type {
   SessionMemory,
   SessionCreateRequest,
   SessionInitInput,
+  UserActionRecallConfig,
+  UserActionRecallRequest,
+  UserActionRecallResponse,
 } from "./types";

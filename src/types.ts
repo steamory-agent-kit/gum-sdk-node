@@ -122,3 +122,22 @@ export interface CreateActionResponse {
   log_id?: string | null;
   [key: string]: unknown;
 }
+
+export interface UserActionRecallConfig {
+  topk?: number;
+  metadata_filters?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+export interface UserActionRecallRequest {
+  user_id: string;
+  query: string;
+  recall_config?: UserActionRecallConfig | null;
+}
+
+export interface UserActionRecallResponse {
+  formatted_context?: string;
+  context?: string;
+  items?: unknown[];
+  [key: string]: unknown;
+}

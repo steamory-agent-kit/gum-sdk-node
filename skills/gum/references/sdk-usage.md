@@ -266,6 +266,38 @@ interface ActionLogInput {
 
 Prefer `content` like `User searched for nearby restaurants` or `User clicked the refund button on the order detail page`. Avoid content like `click` because it is weak retrieval text.
 
+Recall profile-ready memory from user action logs:
+
+```ts
+const profileMemory = await gum.userActions.recall({
+  user_id: "user_123",
+  query: "which refund preferences should be remembered",
+  recall_config: {
+    topk: 10,
+    metadata_filters: {
+      page: "order_detail",
+      source: "backend",
+    },
+  },
+});
+```
+
+Recall request shape:
+
+```ts
+interface UserActionRecallConfig {
+  topk?: number;
+  metadata_filters?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+interface UserActionRecallRequest {
+  user_id: string;
+  query: string;
+  recall_config?: UserActionRecallConfig | null;
+}
+```
+
 ## Request Options
 
 SDK methods that make HTTP requests accept optional request options as the last argument. `gum.sessions.init(sessionId)` is the exception: it only restores a local Session object and does not accept request options.
